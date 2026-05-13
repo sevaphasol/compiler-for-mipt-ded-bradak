@@ -13,8 +13,6 @@
 extern lang_ctx_t* ctx;
 extern int yylex(void);
 
-/* No manual declaration of yylloc – Bison provides it */
-
 void yyerror(const char* s);
 
 static int add_identifier(const char* name);
@@ -41,10 +39,10 @@ static node_t* make_unary_op(operator_code_t op, node_t* operand);
 %token <str> TK_IDENTIFIER
 %token TK_ERROR
 
-%type <node> program top_level_list top_level_decl function_def
+%type <node> program top_level_list top_level_decl function_def var_decl
 %type <node> param_list param
 %type <node> body statement_list statement
-%type <node> var_decl assignment if_stmt while_stmt return_stmt
+%type <node> assignment if_stmt while_stmt return_stmt
 %type <node> print_stmt scan_stmt call_stmt
 %type <node> expression additive_expr multiplicative_expr unary_expr primary_expr
 %type <node> argument_list
@@ -68,10 +66,10 @@ top_level_list
     ;
 
 top_level_decl
-    : function_def
-        { $$ = $1; }
-    | var_decl
-        { $$ = $1; }
+    : TK_TILDE function_def
+        { $$ = $2; }
+    | TK_TILDE var_decl
+        { $$ = $2; }
     ;
 
 function_def
@@ -297,7 +295,6 @@ primary_expr
 %%
 
 void yyerror(const char* s) {
-    /* Use yylloc which is provided by Bison */
     fprintf(stderr, "Parse error at line %d, column %d: %s\n",
             yylloc.first_line, yylloc.first_column, s);
 }

@@ -9,8 +9,7 @@
 extern int yyparse(void);
 extern FILE* yyin;
 
-/* Global context pointer – used by lexer and parser.
-   Must be named 'ctx' because dsl.h macros expect that name. */
+/* Global context pointer – definition (not just extern) */
 lang_ctx_t* ctx;
 
 int main(int argc, const char* argv[])
@@ -25,7 +24,9 @@ int main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    /* Set global pointer for lexer/parser */
+    /* rewind because lang_ctx_ctor already read the whole file */
+    rewind(ctx_local.input_file);
+
     ctx = &ctx_local;
     yyin = ctx_local.input_file;
 
@@ -36,13 +37,11 @@ int main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    /* Output the name table and AST (same as your original frontend) */
     name_table_output(&ctx_local);
     tree_output(&ctx_local, ctx_local.tree);
     graph_dump(&ctx_local, ctx_local.tree, TREE);
 
     lang_ctx_dtor(&ctx_local);
-
     fprintf(stderr, _PURPLE("front-end:  ") _GREEN("success\n"));
     return EXIT_SUCCESS;
 }
