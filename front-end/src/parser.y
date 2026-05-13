@@ -3,32 +3,19 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* Reuse DSL macros and context (same as your old parser) */
 #define _DSL_DEFINE_
 #include "dsl.h"
 #undef _DSL_DEFINE_
 
 #include "lang.h"
 #include "node_allocator.h"
-#include "custom_assert.h"
+#include "parser_utils.h"          /* for add_identifier, get_identifier_index,
+                                      reverse_statement_list, make_binary_op, etc. */
 
-/* Global context – defined in main */
 extern lang_ctx_t* ctx;
 
-/* Semantic helpers (same as old syntax_analysis.c) */
-static lang_status_t push_new_id_counter(lang_ctx_t* ctx);
-static lang_status_t pop_locales(lang_ctx_t* ctx);
-static lang_status_t stack_push(lang_ctx_t* ctx, size_t val);
-static lang_status_t check_var(lang_ctx_t* ctx, size_t* ind, int mode);
-static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t* node, bool is_global);
-
-/* AST helpers */
-static size_t add_identifier(const char* name);
-static size_t get_identifier_index(const char* name);
-static node_t* make_binary_op(operator_code_t op, node_t* left, node_t* right);
-static node_t* make_unary_op(operator_code_t op, node_t* operand);
-static size_t count_nodes(node_t* node);
-static node_t* reverse_statement_list(node_t* head);   // NEW
+int yylex(void);
+void yyerror(const char* s);
 
 /* Modes for check_var */
 #define ON_REDECLARATION 0
@@ -37,10 +24,12 @@ static node_t* reverse_statement_list(node_t* head);   // NEW
 /* Are we parsing a global declaration? */
 static int is_global_context = 1;
 
-/* Forward declarations (C++ compatible) */
-int yylex(void);
-void yyerror(const char* s);
-
+/* Forward declarations of semantic helpers (defined after %%) */
+static lang_status_t push_new_id_counter(lang_ctx_t* ctx);
+static lang_status_t pop_locales(lang_ctx_t* ctx);
+static lang_status_t stack_push(lang_ctx_t* ctx, size_t val);
+static lang_status_t check_var(lang_ctx_t* ctx, size_t* ind, int mode);
+static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t* node, bool is_global);
 %}
 
 %locations
@@ -52,7 +41,6 @@ void yyerror(const char* s);
     node_t* node;
 }
 
-/* Tokens */
 %token TK_TILDE TK_COLON
 %token TK_FUNC TK_VAR TK_IF TK_ELSE TK_WHILE TK_RETURN TK_PRINT TK_SCAN TK_CALL TK_SQRT
 %token TK_ASSIGN TK_PLUS TK_MINUS TK_STAR TK_SLASH
@@ -61,7 +49,6 @@ void yyerror(const char* s);
 %token <str> TK_IDENTIFIER
 %token TK_ERROR
 
-/* Non‑terminal types */
 %type <node> program top_level_list top_level_decl function_def var_decl
 %type <node> param_list param param_rest
 %type <node> body statement_list statement
@@ -87,12 +74,12 @@ program
 
 top_level_list
     : /* empty */       { $$ = NULL; }
-    | top_level_decl    { $$ = _OPERATOR(STATEMENT); $$->left = $1; $$->right = NULL; }
+    | top_level_decl    { $$ = make_statement($1, NULL); }
     | top_level_list top_level_decl
         {
             node_t* stmt = _OPERATOR(STATEMENT);
-            stmt->left = $2;             /* new declaration on left */
-            stmt->right = $1;            /* previous list on right */
+            stmt->left = $2;
+            stmt->right = $1;
             $$ = stmt;
         }
     ;
@@ -120,7 +107,7 @@ function_def
       }
       TK_L_ROUND param_list TK_R_ROUND
       {
-          /* ---- Count parameters BEFORE parsing the body ---- */
+          /* Count parameters BEFORE parsing the body */
           int n_params = 0;
           node_t* p = $5;                   /* param_list */
           while (p && p->value_type == OPERATOR && p->value.operator_code == PARAM_LINKER) {
@@ -137,7 +124,7 @@ function_def
           node_t* func_node = _OPERATOR(NEW_FUNC);
           func_node->left        = func_id;
           func_node->left->left  = $5;      /* param_list */
-          func_node->left->right = $8;      /* body (shifted by the two mid‑rule actions) */
+          func_node->left->right = $8;      /* body (shifted by mid‑rule actions) */
           pop_locales(ctx);                 /* pop parameter scope */
           $$ = func_node;
       }
@@ -148,8 +135,8 @@ param_list
     | TK_COLON param param_rest
         {
             node_t* linker = _OPERATOR(PARAM_LINKER);
-            linker->left = $2;       /* the NEW_VAR node */
-            linker->right = $3;      /* rest of the chain */
+            linker->left = $2;
+            linker->right = $3;
             $$ = linker;
         }
     ;
@@ -176,8 +163,8 @@ param
                 fprintf(stderr, "Redeclaration of parameter '%s'\n", $2);
                 YYERROR;
             }
-            add_new_id(ctx, VAR, var_id, false);
-            var_decl->left = var_id;   /* no assignment */
+            add_new_id(ctx, VAR, var_id, false);   /* local to function */
+            var_decl->left = var_id;
             $$ = var_decl;
         }
     ;
@@ -219,18 +206,18 @@ body
 
 statement_list
     : /* empty */       { $$ = NULL; }
-    | statement         { $$ = _OPERATOR(STATEMENT); $$->left = $1; $$->right = NULL; }
+    | statement         { $$ = make_statement($1, NULL); }
     | statement_list statement
         {
             node_t* stmt = _OPERATOR(STATEMENT);
-            stmt->left = $2;          /* new statement on left */
-            stmt->right = $1;         /* previous list on right */
+            stmt->left = $2;
+            stmt->right = $1;
             $$ = stmt;
         }
     ;
 
 statement
-    : TK_TILDE var_decl      { is_global_context = 0; $$ = $2; is_global_context = 1; }
+    : TK_TILDE { is_global_context = 0; } var_decl      { $$ = $3; is_global_context = 1; }
     | TK_TILDE assignment    { $$ = $2; }
     | TK_TILDE if_stmt       { $$ = $2; }
     | TK_TILDE while_stmt    { $$ = $2; }
@@ -257,6 +244,7 @@ assignment
             assign->left = id_node;
             assign->right = $3;
             $$ = assign;
+            free($1);
         }
     ;
 
@@ -299,9 +287,7 @@ print_stmt
     : TK_PRINT TK_L_ROUND TK_COLON expression TK_R_ROUND
         {
             node_t* print = _OPERATOR(OUT);
-            print->left = _OPERATOR(PARAM_LINKER);
-            print->left->left = $4;
-            print->left->right = NULL;
+            print->left = make_linker($4);
             $$ = print;
         }
     ;
@@ -316,10 +302,9 @@ scan_stmt
                 fprintf(stderr, "Variable '%s' not declared\n", $4);
                 YYERROR;
             }
-            scan->left = _OPERATOR(PARAM_LINKER);
-            scan->left->left = id;
-            scan->left->right = NULL;
+            scan->left = make_linker(id);
             $$ = scan;
+            free($4);
         }
     ;
 
@@ -348,18 +333,13 @@ call_stmt
             call->left = id;
             call->left->left = $4;
             $$ = call;
+            free($2);
         }
     ;
 
 argument_list
     : /* empty */   { $$ = NULL; }
-    | TK_COLON expression
-        {
-            node_t* linker = _OPERATOR(PARAM_LINKER);
-            linker->left = $2;
-            linker->right = NULL;
-            $$ = linker;
-        }
+    | TK_COLON expression      { $$ = make_linker($2); }
     | argument_list TK_COLON expression
         {
             node_t* linker = _OPERATOR(PARAM_LINKER);
@@ -432,6 +412,7 @@ primary_expr
             call->left = id;
             call->left->left = $4;
             $$ = call;
+            free($2);
         }
     ;
 
@@ -443,59 +424,6 @@ void yyerror(const char* s) {
 }
 
 /* ---------- Semantic helper implementations ---------- */
-
-static size_t add_identifier(const char* name) {
-    for (size_t i = 0; i < ctx->name_table.n_names; i++) {
-        if (strcmp(ctx->name_table.names[i].name, name) == 0)
-            return i;
-    }
-    size_t idx = ctx->name_table.n_names;
-    ctx->name_table.names[idx].name = strdup(name);
-    ctx->name_table.names[idx].len = strlen(name);
-    ctx->name_table.n_names++;
-    return idx;
-}
-
-static size_t get_identifier_index(const char* name) {
-    for (size_t i = 0; i < ctx->name_table.n_names; i++) {
-        if (strcmp(ctx->name_table.names[i].name, name) == 0)
-            return i;
-    }
-    return add_identifier(name);
-}
-
-static node_t* make_binary_op(operator_code_t op, node_t* left, node_t* right) {
-    node_t* node = _OPERATOR(op);
-    node->left = left;
-    node->right = right;
-    return node;
-}
-
-static node_t* make_unary_op(operator_code_t op, node_t* operand) {
-    node_t* node = _OPERATOR(op);
-    node->left = operand;
-    return node;
-}
-
-static size_t count_nodes(node_t* node) {
-    if (!node) return 0;
-    return 1 + count_nodes(node->left) + count_nodes(node->right);
-}
-
-/* ---- List reversal (new) ---- */
-static node_t* reverse_statement_list(node_t* head) {
-    node_t* prev = NULL;
-    node_t* curr = head;
-    while (curr) {
-        node_t* next = curr->right;   /* save next */
-        curr->right = prev;           /* reverse link */
-        prev = curr;
-        curr = next;
-    }
-    return prev;
-}
-
-/* ----- Stack and symbol‑table helpers (exact copies from your old syntax_analysis.c) ----- */
 
 static lang_status_t stack_push(lang_ctx_t* ctx, size_t val) {
     if (ctx->id_stack.top >= ctx->id_stack.size) return LANG_ID_STACK_OVERFLOW_ERROR;
@@ -548,7 +476,7 @@ static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t*
     ctx->name_table.ids[new_id].addr      = 0;
     ctx->name_table.ids[new_id].is_global = is_global;
     ctx->name_table.ids[new_id].is_stdlib = 0;
-    node->value.id_index = new_id;
+    node->value.id_index = new_id;   /* replace name index with the new id index */
     ctx->name_table.n_ids++;
     return stack_push(ctx, new_id);
 }

@@ -1,0 +1,38 @@
+~ func solve_linear(: var b : var c)
+{
+    ~ if (b) {
+        ~ print (: (0 - c) / b)
+    }
+
+    ~ return 0
+}
+
+~ func solve_square_eq(: var a : var b : var c)
+{
+    ~ if (a) {
+        ~ var D = b * b - 4 * a * c
+
+        ~ var x_one = ((0 - b) + sqrt(: D)) / (2 * a)
+        ~ var x_two = ((0 - b) - sqrt(: D)) / (2 * a)
+
+        ~ print(: x_one)
+        ~ print(: x_two)
+
+        ~ return 0
+    }
+
+    ~ return call solve_linear(: b : c)
+}
+
+~ func main()
+{
+    ~ var a = 0
+    ~ var b = 0
+    ~ var c = 0
+
+    ~ scan(: a)
+    ~ scan(: b)
+    ~ scan(: c)
+
+    ~ return call solve_square_eq(: a : b : c)
+}
