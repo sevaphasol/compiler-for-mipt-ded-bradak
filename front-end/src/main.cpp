@@ -9,10 +9,8 @@
 extern int yyparse(void);
 extern FILE* yyin;
 
-/* Global context pointer – definition (not just extern) */
+/* Global context pointer – definition */
 lang_ctx_t* ctx;
-
-extern lang_status_t semantic_analysis(lang_ctx_t* ctx);
 
 int main(int argc, const char* argv[])
 {
@@ -32,20 +30,15 @@ int main(int argc, const char* argv[])
     ctx = &ctx_local;
     yyin = ctx_local.input_file;
 
-        if (yyparse() != 0)
+    /* Parsing – all semantic checks are done inside */
+    if (yyparse() != 0)
     {
         fprintf(stderr, "Parsing failed\n");
         lang_ctx_dtor(&ctx_local);
         return EXIT_FAILURE;
     }
 
-    // --- ADD THIS LINE ---
-    if (semantic_analysis(ctx) != LANG_SUCCESS) {
-        fprintf(stderr, "Semantic analysis failed\n");
-        lang_ctx_dtor(&ctx_local);
-        return EXIT_FAILURE;
-    }
-
+    /* Post‑parsing: output and dump (as in your old main) */
     name_table_output(&ctx_local);
     tree_output(&ctx_local, ctx_local.tree);
     graph_dump(&ctx_local, ctx_local.tree, TREE);

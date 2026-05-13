@@ -56,9 +56,19 @@ lang_status_t semantic_analysis(lang_ctx_t* ctx) {
 
 // ----------------------------------------------------------------------
 static lang_status_t semantic_program(lang_ctx_t* ctx, node_t* node) {
-    while (node && node->value_type == OPERATOR && node->value.operator_code == STATEMENT) {
-        VERIFY(semantic_declaration(ctx, node->left, true), return LANG_ERROR);
-        node = node->right;
+    if (!node) return LANG_SUCCESS;
+    if (node->value_type == OPERATOR && node->value.operator_code == STATEMENT) {
+        // Process the rest of the list (right) first
+        if (node->right) {
+            VERIFY(semantic_program(ctx, node->right), return LANG_ERROR);
+        }
+        // Then process the current declaration (left)
+        if (node->left) {
+            VERIFY(semantic_declaration(ctx, node->left, true), return LANG_ERROR);
+        }
+    } else {
+        // Single declaration (should not occur, but safe)
+        VERIFY(semantic_declaration(ctx, node, true), return LANG_ERROR);
     }
     return LANG_SUCCESS;
 }
@@ -132,38 +142,53 @@ static lang_status_t semantic_func_declaration(lang_ctx_t* ctx, node_t* node) {
 
 // ----------------------------------------------------------------------
 static lang_status_t semantic_var_declaration(lang_ctx_t* ctx, node_t* node, bool is_global) {
-    node_t* assign = node->left;
-    if (assign->value_type != OPERATOR || assign->value.operator_code != ASSIGNMENT) {
-        fprintf(stderr, "Expected ASSIGNMENT inside NEW_VAR\n");
+    // node: NEW_VAR
+    // Two possible structures:
+    // 1) With initializer: node->left is ASSIGNMENT (left=ID, right=expr)
+    // 2) Without initializer (parameter): node->left is directly IDENTIFIER
+    node_t* var_id = NULL;
+    node_t* init_expr = NULL;
+    
+    if (node->left->value_type == OPERATOR && node->left->value.operator_code == ASSIGNMENT) {
+        node_t* assign = node->left;
+        var_id = assign->left;
+        init_expr = assign->right;
+    } else if (node->left->value_type == IDENTIFIER) {
+        var_id = node->left;
+        init_expr = NULL;
+    } else {
+        fprintf(stderr, "Invalid NEW_VAR structure\n");
         return LANG_ERROR;
     }
-    node_t* var_id = assign->left;
+    
     if (var_id->value_type != IDENTIFIER) {
         fprintf(stderr, "Variable name is not an identifier\n");
         return LANG_ERROR;
     }
-
+    
     // Check redeclaration in current scope
     size_t id_index = var_id->value.id_index;
     if (check_var(ctx, &id_index, ON_REDECLARATION) != LANG_SUCCESS) {
         fprintf(stderr, "Redeclaration of variable '%s'\n", ctx->name_table.names[var_id->value.id_index].name);
         return LANG_REDECLARATION_ERROR;
     }
-
+    
     // Add variable to symbol table
     VERIFY(add_new_id(ctx, VAR, var_id, is_global), return LANG_ERROR);
-
-    // Assign stack offset for locals (global variables have addr = 0)
+    
+    // Assign stack offset for locals
     if (!is_global) {
         ctx->name_table.ids[id_index].addr = (int)(VAR_SIZE * (++ctx->n_locals));
     } else {
         ctx->name_table.ids[id_index].addr = 0;
         ctx->n_globals++;
     }
-
-    // Process initializer expression
-    VERIFY(semantic_expression(ctx, assign->right), return LANG_ERROR);
-
+    
+    // Process initializer expression if present
+    if (init_expr) {
+        VERIFY(semantic_expression(ctx, init_expr), return LANG_ERROR);
+    }
+    
     return LANG_SUCCESS;
 }
 
@@ -172,13 +197,22 @@ static lang_status_t semantic_body(lang_ctx_t* ctx, node_t* node) {
     return semantic_statement_list(ctx, node);
 }
 
+
 static lang_status_t semantic_statement_list(lang_ctx_t* ctx, node_t* node) {
-    while (node && node->value_type == OPERATOR && node->value.operator_code == STATEMENT) {
-        VERIFY(semantic_statement(ctx, node->left), return LANG_ERROR);
-        node = node->right;
+    if (!node) return LANG_SUCCESS;
+    if (node->value_type == OPERATOR && node->value.operator_code == STATEMENT) {
+        if (node->right) {
+            VERIFY(semantic_statement_list(ctx, node->right), return LANG_ERROR);
+        }
+        if (node->left) {
+            VERIFY(semantic_statement(ctx, node->left), return LANG_ERROR);
+        }
+    } else {
+        VERIFY(semantic_statement(ctx, node), return LANG_ERROR);
     }
     return LANG_SUCCESS;
 }
+
 
 static lang_status_t semantic_statement(lang_ctx_t* ctx, node_t* node) {
     if (!node) return LANG_SUCCESS;
