@@ -12,6 +12,8 @@ extern FILE* yyin;
 /* Global context pointer – definition (not just extern) */
 lang_ctx_t* ctx;
 
+extern lang_status_t semantic_analysis(lang_ctx_t* ctx);
+
 int main(int argc, const char* argv[])
 {
     lang_ctx_t ctx_local = {};
@@ -30,9 +32,16 @@ int main(int argc, const char* argv[])
     ctx = &ctx_local;
     yyin = ctx_local.input_file;
 
-    if (yyparse() != 0)
+        if (yyparse() != 0)
     {
         fprintf(stderr, "Parsing failed\n");
+        lang_ctx_dtor(&ctx_local);
+        return EXIT_FAILURE;
+    }
+
+    // --- ADD THIS LINE ---
+    if (semantic_analysis(ctx) != LANG_SUCCESS) {
+        fprintf(stderr, "Semantic analysis failed\n");
         lang_ctx_dtor(&ctx_local);
         return EXIT_FAILURE;
     }

@@ -15,8 +15,8 @@ extern int yylex(void);
 
 void yyerror(const char* s);
 
-static int add_identifier(const char* name);
-static int get_identifier_index(const char* name);
+static size_t add_identifier(const char* name);
+static size_t get_identifier_index(const char* name);
 static node_t* make_binary_op(operator_code_t op, node_t* left, node_t* right);
 static node_t* make_unary_op(operator_code_t op, node_t* operand);
 %}
@@ -51,11 +51,24 @@ static node_t* make_unary_op(operator_code_t op, node_t* operand);
 
 program
     : top_level_list
+        { 
+            ctx->tree = $1; 
+            ctx->nodes[0] = $1;   /* Some functions expect nodes[0] */
+            ctx->n_nodes = 1;
+        }
     ;
 
 top_level_list
-    : top_level_decl
-        { $$ = $1; }
+    : /* empty */
+        { $$ = NULL; }
+    | top_level_decl
+        { 
+            /* Wrap single declaration in a STATEMENT node */
+            node_t* stmt = _OPERATOR(STATEMENT);
+            stmt->left = $1;
+            stmt->right = NULL;
+            $$ = stmt;
+        }
     | top_level_list top_level_decl
         {
             node_t* stmt = _OPERATOR(STATEMENT);
@@ -73,14 +86,14 @@ top_level_decl
     ;
 
 function_def
-    : TK_FUNC TK_IDENTIFIER param_list body
+    : TK_FUNC TK_IDENTIFIER TK_L_ROUND param_list TK_R_ROUND body
         {
             node_t* func_node = _OPERATOR(NEW_FUNC);
             node_t* func_id   = _IDENTIFIER(add_identifier($2));
             free($2);
             func_node->left = func_id;
-            func_node->left->left = $3;
-            func_node->left->right = $4;
+            func_node->left->left = $4;
+            func_node->left->right = $6;
             $$ = func_node;
         }
     ;
@@ -168,7 +181,7 @@ assignment
     ;
 
 if_stmt
-    : TK_IF TK_L_ROUND expression TK_R_ROUND statement
+    : TK_IF TK_L_ROUND expression TK_R_ROUND body
         {
             node_t* if_node = _OPERATOR(IF);
             if_node->left = $3;
@@ -178,7 +191,7 @@ if_stmt
     ;
 
 while_stmt
-    : TK_WHILE TK_L_ROUND expression TK_R_ROUND statement
+    : TK_WHILE TK_L_ROUND expression TK_R_ROUND body
         {
             node_t* while_node = _OPERATOR(WHILE);
             while_node->left = $3;
@@ -197,33 +210,33 @@ return_stmt
     ;
 
 print_stmt
-    : TK_PRINT TK_COLON expression
+    : TK_PRINT TK_L_ROUND TK_COLON expression TK_R_ROUND
         {
             node_t* print = _OPERATOR(OUT);
-            print->left = $3;
+            print->left = $4;
             $$ = print;
         }
     ;
 
 scan_stmt
-    : TK_SCAN TK_COLON TK_IDENTIFIER
+    : TK_SCAN TK_L_ROUND TK_COLON TK_IDENTIFIER TK_R_ROUND
         {
             node_t* scan = _OPERATOR(IN);
-            node_t* id = _IDENTIFIER(get_identifier_index($3));
-            free($3);
+            node_t* id = _IDENTIFIER(get_identifier_index($4));
+            free($4);
             scan->left = id;
             $$ = scan;
         }
     ;
 
 call_stmt
-    : TK_CALL TK_IDENTIFIER argument_list
+    : TK_CALL TK_IDENTIFIER TK_L_ROUND argument_list TK_R_ROUND
         {
             node_t* call = _OPERATOR(CALL);
             node_t* id = _IDENTIFIER(get_identifier_index($2));
             free($2);
             call->left = id;
-            call->left->left = $3;
+            call->left->left = $4;
             $$ = call;
         }
     ;
@@ -270,8 +283,8 @@ unary_expr
         { $$ = $1; }
     | TK_MINUS primary_expr
         { $$ = make_unary_op(SUB, $2); }
-    | TK_SQRT TK_COLON primary_expr
-        { $$ = make_unary_op(SQRT, $3); }
+    | TK_SQRT TK_L_ROUND TK_COLON primary_expr TK_R_ROUND
+        { $$ = make_unary_op(SQRT, $4); }
     ;
 
 primary_expr
@@ -281,13 +294,13 @@ primary_expr
         { $$ = _IDENTIFIER(get_identifier_index($1)); free($1); }
     | TK_L_ROUND expression TK_R_ROUND
         { $$ = $2; }
-    | TK_CALL TK_IDENTIFIER argument_list
+    | TK_CALL TK_IDENTIFIER TK_L_ROUND argument_list TK_R_ROUND
         {
             node_t* call = _OPERATOR(CALL);
             node_t* id = _IDENTIFIER(get_identifier_index($2));
             free($2);
             call->left = id;
-            call->left->left = $3;
+            call->left->left = $4;
             $$ = call;
         }
     ;
@@ -299,22 +312,22 @@ void yyerror(const char* s) {
             yylloc.first_line, yylloc.first_column, s);
 }
 
-static int add_identifier(const char* name) {
+static size_t add_identifier(const char* name) {
     for (size_t i = 0; i < ctx->name_table.n_names; i++) {
         if (strcmp(ctx->name_table.names[i].name, name) == 0)
-            return (int)i;
+            return i;
     }
     size_t idx = ctx->name_table.n_names;
     ctx->name_table.names[idx].name = strdup(name);
     ctx->name_table.names[idx].len = strlen(name);
     ctx->name_table.n_names++;
-    return (int)idx;
+    return idx;
 }
 
-static int get_identifier_index(const char* name) {
+static size_t get_identifier_index(const char* name) {
     for (size_t i = 0; i < ctx->name_table.n_names; i++) {
         if (strcmp(ctx->name_table.names[i].name, name) == 0)
-            return (int)i;
+            return i;
     }
     return add_identifier(name);
 }
