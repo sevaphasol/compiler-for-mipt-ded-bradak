@@ -125,6 +125,8 @@ lang_status_t make_binary(lang_ctx_t* ctx)
     fixup_table_ctor    (&ctx->fixups,          TABLE_INIT_CAPACITY);
     lib_calls_table_ctor(&ctx->lib_calls_table, TABLE_INIT_CAPACITY);
 
+    stdlib_data_ctor    (&ctx->stdlib_data);
+
     ir_to_binary(ctx);
 
     buf_dtor(&ctx->ir_buf);
@@ -138,6 +140,7 @@ lang_status_t make_binary(lang_ctx_t* ctx)
     }
 
     lib_calls_table_dtor(&ctx->lib_calls_table);
+    stdlib_data_dtor(&ctx->stdlib_data);
 
     return LANG_SUCCESS;
 }

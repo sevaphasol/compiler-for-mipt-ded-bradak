@@ -252,7 +252,9 @@ struct lang_ctx_t
 
     label_table_t     label_table;
     fixup_table_t     fixups;
+    
     lib_calls_table_t lib_calls_table;
+    stdlib_data_t     stdlib_data;
 };
 
 //———————————————————————————————————————————————————————————————————//
