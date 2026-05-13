@@ -33,5 +33,21 @@ struct lib_calls_table_t {
     bool                load_out;
 };
 
+//——————————————————————————————————————————————————————————————————————————————
+
+struct stdlib_entry_t {
+    char               *name;
+    uint32_t            offset;
+};
+
+struct stdlib_data_t {
+    stdlib_entry_t     *entries;
+    uint32_t            num_funcs;
+    uint8_t            *text_data;
+    size_t              text_size;
+    size_t              base_offset; // where the .text was appended in bin_buf
+};
+
+//——————————————————————————————————————————————————————————————————————————————
 
 #endif // _LIB_CALLS_TABLE_H__
