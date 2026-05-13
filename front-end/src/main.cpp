@@ -1,90 +1,48 @@
 #include <stdio.h>
-#include <sys/stat.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include "custom_assert.h"
-#include "graph_dump.h"
+#include "lang.h"
 #include "node_allocator.h"
-#include "io_interaction.h"
+#include "graph_dump.h"
 #include "color_print.h"
 #include "read_name_table_utils.h"
 
-//———————————————————————————————————————————————————————————————————//
+extern int yyparse(void);
+extern FILE* yyin;
 
-#define _DSL_DEFINE_
-#include "dsl.h"
-
-//———————————————————————————————————————————————————————————————————//
-
-extern lang_status_t tokenize        (lang_ctx_t* ctx);
-extern lang_status_t syntax_analysis (lang_ctx_t* ctx);
-
-//———————————————————————————————————————————————————————————————————//
+/* Global context pointer – used by lexer and parser.
+   Must be named 'ctx' because dsl.h macros expect that name. */
+lang_ctx_t* ctx;
 
 int main(int argc, const char* argv[])
 {
-    lang_ctx_t ctx = {};
-
+    lang_ctx_t ctx_local = {};
     node_allocator_t node_allocator = {};
-    ctx.node_allocator = &node_allocator;
+    ctx_local.node_allocator = &node_allocator;
 
-    //---------------------------------------------------------------//
+    if (lang_ctx_ctor(&ctx_local, argc, argv, FrontendDefaultInput, FrontendDefaultOutput) != LANG_SUCCESS)
+    {
+        lang_ctx_dtor(&ctx_local);
+        return EXIT_FAILURE;
+    }
 
-    VERIFY(lang_ctx_ctor(&ctx,
-                         argc,
-                         argv,
-                         FrontendDefaultInput,
-                         FrontendDefaultOutput),
-           lang_ctx_dtor(&ctx);
-           return EXIT_FAILURE);
+    /* Set global pointer for lexer/parser */
+    ctx = &ctx_local;
+    yyin = ctx_local.input_file;
 
-    //---------------------------------------------------------------//
+    if (yyparse() != 0)
+    {
+        fprintf(stderr, "Parsing failed\n");
+        lang_ctx_dtor(&ctx_local);
+        return EXIT_FAILURE;
+    }
 
-    VERIFY(tokenize(&ctx),
-           lang_ctx_dtor(&ctx);
-           return EXIT_FAILURE);
+    /* Output the name table and AST (same as your original frontend) */
+    name_table_output(&ctx_local);
+    tree_output(&ctx_local, ctx_local.tree);
+    graph_dump(&ctx_local, ctx_local.tree, TREE);
 
-    //-------------------------------------------------------------------//
-
-    VERIFY(syntax_analysis(&ctx),
-           lang_ctx_dtor(&ctx);
-           return EXIT_FAILURE);
-
-    //---------------------------------------------------------------//
-
-    VERIFY(name_table_output(&ctx),
-           lang_ctx_dtor(&ctx);
-           return EXIT_FAILURE);
-
-    //---------------------------------------------------------------//
-
-    VERIFY(tree_output(&ctx, ctx.nodes[0]),
-           lang_ctx_dtor(&ctx);
-           return EXIT_FAILURE);
-
-    //---------------------------------------------------------------//
-
-    VERIFY(graph_dump(&ctx, ctx.nodes[0], TREE),
-           lang_ctx_dtor(&ctx);
-           return EXIT_FAILURE);
-
-    //---------------------------------------------------------------//
-
-    VERIFY(lang_ctx_dtor(&ctx),
-           return EXIT_FAILURE);
-
-    //---------------------------------------------------------------//
+    lang_ctx_dtor(&ctx_local);
 
     fprintf(stderr, _PURPLE("front-end:  ") _GREEN("success\n"));
-
-    //-------------------------------------------------------------------//
-
     return EXIT_SUCCESS;
 }
-
-//———————————————————————————————————————————————————————————————————//
-
-#define _DSL_UNDEF_
-#include "dsl.h"
-
-//———————————————————————————————————————————————————————————————————//

@@ -160,6 +160,7 @@ struct identifier_t
     bool              is_inited;
     int               addr;
     bool              is_global;
+    bool              is_stdlib; 
 };
 
 //———————————————————————————————————————————————————————————————————//

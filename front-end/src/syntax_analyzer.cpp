@@ -251,9 +251,15 @@ lang_status_t get_func_declaration(lang_ctx_t* ctx, node_t** ret_node)
     _NEXT_POS
 
     //---------------------------------------------------------------//
-
+    
     VERIFY(get_body(ctx, &(*ret_node)->left->right),
            return LANG_GET_BODY_ERROR);
+
+    // node_t* body = (*ret_node)->left->right;
+    // if (body->left == NULL && body->right == NULL) {
+    //     // body is empty: { }
+    //     _ID((*ret_node)->left).is_stdlib = true;
+    // }
 
     //---------------------------------------------------------------//
 
