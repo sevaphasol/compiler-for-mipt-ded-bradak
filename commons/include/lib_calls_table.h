@@ -20,9 +20,6 @@ struct lib_calls_table_t {
     lib_call_request_t* requests;
     size_t              capacity;
     size_t              size;
-
-    size_t              in_addr;
-    size_t              out_addr;
 };
 
 //——————————————————————————————————————————————————————————————————————————————
