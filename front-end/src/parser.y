@@ -9,25 +9,22 @@
 
 #include "lang.h"
 #include "node_allocator.h"
-#include "parser_utils.h"          /* for add_identifier, get_identifier_index,
-                                      reverse_statement_list, make_binary_op, etc. */
+#include "parser_utils.h"
 
 extern lang_ctx_t* ctx;
+extern int yylineno;
 
 int yylex(void);
 void yyerror(const char* s);
 
-/* Modes for check_var */
 #define ON_REDECLARATION 0
 #define ON_INITED        1
 
-/* Are we parsing a global declaration? */
 static int is_global_context = 1;
 
-/* Forward declarations of semantic helpers (defined after %%) */
+/* Semantic helpers */
 static lang_status_t push_new_id_counter(lang_ctx_t* ctx);
 static lang_status_t pop_locales(lang_ctx_t* ctx);
-static lang_status_t stack_push(lang_ctx_t* ctx, size_t val);
 static lang_status_t check_var(lang_ctx_t* ctx, size_t* ind, int mode);
 static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t* node, bool is_global);
 %}
@@ -60,78 +57,69 @@ static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t*
 %%
 
 program
-    : /* Push global scope */
-      { push_new_id_counter(ctx); is_global_context = 1; }
+    : { push_new_id_counter(ctx); is_global_context = 1; }
       top_level_list
       {
-          node_t* reversed = reverse_statement_list($2);
-          ctx->tree = reversed;
-          ctx->nodes[0] = reversed;
-          ctx->n_nodes = count_nodes(reversed);
-          pop_locales(ctx);   /* pop global scope */
+          node_t* root = ($2) ? reverse_statement_list($2) : NULL;
+          ctx->tree = root;
+          ctx->nodes[0] = root;
+          ctx->n_nodes = count_nodes(root);
+          pop_locales(ctx);
       }
     ;
 
 top_level_list
     : /* empty */       { $$ = NULL; }
-    | top_level_decl    { $$ = make_statement($1, NULL); }
     | top_level_list top_level_decl
         {
-            node_t* stmt = _OPERATOR(STATEMENT);
-            stmt->left = $2;
-            stmt->right = $1;
-            $$ = stmt;
+            $$ = make_statement($2, $1);
         }
     ;
 
 top_level_decl
-    : TK_TILDE function_def   { $$ = $2; is_global_context = 1; }
-    | TK_TILDE var_decl       { $$ = $2; is_global_context = 1; }
+    : TK_TILDE { is_global_context = 1; } function_def   { $$ = $3; }
+    | TK_TILDE { is_global_context = 1; } var_decl       { $$ = $3; }
     ;
 
-/* ------------------------------------------------------------------
-   FUNCTION DEFINITIONS
-   ------------------------------------------------------------------ */
 function_def
     : TK_FUNC TK_IDENTIFIER
       {
           size_t idx = add_identifier($2);
-          node_t* func_id = _IDENTIFIER(idx);
           if (check_var(ctx, &idx, ON_REDECLARATION) != LANG_SUCCESS) {
-              fprintf(stderr, "Redeclaration of function '%s'\n", $2);
+              fprintf(stderr, "Error: Redeclaration of function '%s'\n", $2);
               YYERROR;
           }
+          node_t* func_id = _IDENTIFIER(idx);
           add_new_id(ctx, FUNC, func_id, true);
-          push_new_id_counter(ctx);          /* scope for parameters */
-          $<node>$ = func_id;                /* store for later use */
+          push_new_id_counter(ctx); 
+          $<node>$ = func_id;
+          free($2);
       }
       TK_L_ROUND param_list TK_R_ROUND
       {
-          /* Count parameters BEFORE parsing the body */
           int n_params = 0;
-          node_t* p = $5;                   /* param_list */
+          node_t* p = $5;
           while (p && p->value_type == OPERATOR && p->value.operator_code == PARAM_LINKER) {
               n_params++;
               p = p->right;
           }
-          node_t* func_id = $<node>3;       /* retrieve stored func_id */
-          size_t func_idx = func_id->value.id_index;
-          ctx->name_table.ids[func_idx].n_params = n_params;
+          node_t* func_id = $<node>3;
+          ctx->name_table.ids[func_id->value.id_index].n_params = n_params;
+          func_id->left = $5; // Attach params to the identifier
       }
       body
       {
           node_t* func_id   = $<node>3;
           node_t* func_node = _OPERATOR(NEW_FUNC);
-          func_node->left        = func_id;
-          func_node->left->left  = $5;      /* param_list */
-          func_node->left->right = $8;      /* body (shifted by mid‑rule actions) */
-          pop_locales(ctx);                 /* pop parameter scope */
+          func_node->left   = func_id;
+          func_id->right    = $8; // Body on the right
+          pop_locales(ctx);
           $$ = func_node;
       }
     ;
 
 param_list
-    : /* empty */                    { $$ = NULL; }
+    : /* empty */ { $$ = NULL; }
     | TK_COLON param param_rest
         {
             node_t* linker = _OPERATOR(PARAM_LINKER);
@@ -142,7 +130,7 @@ param_list
     ;
 
 param_rest
-    : /* empty */                    { $$ = NULL; }
+    : /* empty */ { $$ = NULL; }
     | TK_COLON param param_rest
         {
             node_t* linker = _OPERATOR(PARAM_LINKER);
@@ -155,92 +143,81 @@ param_rest
 param
     : TK_VAR TK_IDENTIFIER
         {
-            /* Parameter variable – no initialisation */
-            node_t* var_decl = _OPERATOR(NEW_VAR);
-            node_t* var_id   = _IDENTIFIER(add_identifier($2));
-            size_t idx = var_id->value.id_index;
+            size_t idx = add_identifier($2);
             if (check_var(ctx, &idx, ON_REDECLARATION) != LANG_SUCCESS) {
-                fprintf(stderr, "Redeclaration of parameter '%s'\n", $2);
+                fprintf(stderr, "Error: Redeclaration of parameter '%s'\n", $2);
                 YYERROR;
             }
-            add_new_id(ctx, VAR, var_id, false);   /* local to function */
+            node_t* var_id = _IDENTIFIER(idx);
+            add_new_id(ctx, VAR, var_id, false);
+            node_t* var_decl = _OPERATOR(NEW_VAR);
             var_decl->left = var_id;
             $$ = var_decl;
+            free($2);
         }
     ;
 
-/* ------------------------------------------------------------------
-   VARIABLE DECLARATIONS (global or local)
-   ------------------------------------------------------------------ */
 var_decl
     : TK_VAR TK_IDENTIFIER TK_ASSIGN expression
         {
-            node_t* var_node = _OPERATOR(NEW_VAR);
-            node_t* assign   = _OPERATOR(ASSIGNMENT);
-            node_t* id_node  = _IDENTIFIER(add_identifier($2));
-            size_t idx = id_node->value.id_index;
+            size_t idx = add_identifier($2);
             if (check_var(ctx, &idx, ON_REDECLARATION) != LANG_SUCCESS) {
-                fprintf(stderr, "Redeclaration of variable '%s'\n", $2);
+                fprintf(stderr, "Error: Redeclaration of variable '%s'\n", $2);
                 YYERROR;
             }
+            node_t* id_node = _IDENTIFIER(idx);
             add_new_id(ctx, VAR, id_node, is_global_context);
+            
+            node_t* assign = _OPERATOR(ASSIGNMENT);
             assign->left = id_node;
             assign->right = $4;
+            
+            node_t* var_node = _OPERATOR(NEW_VAR);
             var_node->left = assign;
             $$ = var_node;
+            free($2);
         }
     ;
 
-/* ------------------------------------------------------------------
-   BODY (scope for statements)
-   ------------------------------------------------------------------ */
 body
-    : TK_L_CURLY
-      { push_new_id_counter(ctx); }
+    : TK_L_CURLY { push_new_id_counter(ctx); }
       statement_list TK_R_CURLY
       {
-          $$ = reverse_statement_list($3);   /* REVERSE to forward order */
+          $$ = ($3) ? reverse_statement_list($3) : NULL;
           pop_locales(ctx);
       }
     ;
 
 statement_list
     : /* empty */       { $$ = NULL; }
-    | statement         { $$ = make_statement($1, NULL); }
     | statement_list statement
         {
-            node_t* stmt = _OPERATOR(STATEMENT);
-            stmt->left = $2;
-            stmt->right = $1;
-            $$ = stmt;
+            $$ = make_statement($2, $1);
         }
     ;
 
 statement
-    : TK_TILDE { is_global_context = 0; } var_decl      { $$ = $3; is_global_context = 1; }
-    | TK_TILDE assignment    { $$ = $2; }
-    | TK_TILDE if_stmt       { $$ = $2; }
-    | TK_TILDE while_stmt    { $$ = $2; }
-    | TK_TILDE return_stmt   { $$ = $2; }
-    | TK_TILDE print_stmt    { $$ = $2; }
-    | TK_TILDE scan_stmt     { $$ = $2; }
-    | TK_TILDE call_stmt     { $$ = $2; }
-    | TK_TILDE expression    { $$ = $2; }
+    : TK_TILDE { is_global_context = 0; } var_decl      { $$ = $3; }
+    | TK_TILDE assignment                               { $$ = $2; }
+    | TK_TILDE if_stmt                                  { $$ = $2; }
+    | TK_TILDE while_stmt                               { $$ = $2; }
+    | TK_TILDE return_stmt                              { $$ = $2; }
+    | TK_TILDE print_stmt                               { $$ = $2; }
+    | TK_TILDE scan_stmt                                { $$ = $2; }
+    | TK_TILDE call_stmt                                { $$ = $2; }
+    | TK_TILDE expression                               { $$ = $2; }
     ;
 
-/* ------------------------------------------------------------------
-   ASSIGNMENT
-   ------------------------------------------------------------------ */
 assignment
     : TK_IDENTIFIER TK_ASSIGN expression
         {
-            node_t* assign = _OPERATOR(ASSIGNMENT);
-            node_t* id_node = _IDENTIFIER(get_identifier_index($1));
-            size_t idx = id_node->value.id_index;
+            size_t idx = get_identifier_index($1);
             if (check_var(ctx, &idx, ON_INITED) != LANG_SUCCESS) {
-                fprintf(stderr, "Use of undeclared variable '%s'\n", $1);
+                fprintf(stderr, "Error: Undeclared variable '%s'\n", $1);
                 YYERROR;
             }
+            node_t* id_node = _IDENTIFIER(idx); 
+            node_t* assign = _OPERATOR(ASSIGNMENT);
             assign->left = id_node;
             assign->right = $3;
             $$ = assign;
@@ -269,18 +246,8 @@ while_stmt
     ;
 
 return_stmt
-    : TK_RETURN expression
-        {
-            node_t* ret = _OPERATOR(RET);
-            ret->left = $2;
-            $$ = ret;
-        }
-    | TK_RETURN
-        {
-            node_t* ret = _OPERATOR(RET);
-            ret->left = NULL;
-            $$ = ret;
-        }
+    : TK_RETURN expression  { $$ = _OPERATOR(RET); $$->left = $2; }
+    | TK_RETURN             { $$ = _OPERATOR(RET); $$->left = NULL; }
     ;
 
 print_stmt
@@ -295,14 +262,13 @@ print_stmt
 scan_stmt
     : TK_SCAN TK_L_ROUND TK_COLON TK_IDENTIFIER TK_R_ROUND
         {
-            node_t* scan = _OPERATOR(IN);
-            node_t* id = _IDENTIFIER(get_identifier_index($4));
-            size_t idx = id->value.id_index;
+            size_t idx = get_identifier_index($4);
             if (check_var(ctx, &idx, ON_INITED) != LANG_SUCCESS) {
-                fprintf(stderr, "Variable '%s' not declared\n", $4);
+                fprintf(stderr, "Error: Variable '%s' not declared\n", $4);
                 YYERROR;
             }
-            scan->left = make_linker(id);
+            node_t* scan = _OPERATOR(IN);
+            scan->left = make_linker(_IDENTIFIER(idx));
             $$ = scan;
             free($4);
         }
@@ -311,35 +277,23 @@ scan_stmt
 call_stmt
     : TK_CALL TK_IDENTIFIER TK_L_ROUND argument_list TK_R_ROUND
         {
-            node_t* call = _OPERATOR(CALL);
-            node_t* id = _IDENTIFIER(get_identifier_index($2));
-            size_t idx = id->value.id_index;
+            size_t idx = get_identifier_index($2);
             if (check_var(ctx, &idx, ON_INITED) != LANG_SUCCESS) {
-                fprintf(stderr, "Function '%s' not declared\n", $2);
+                fprintf(stderr, "Error: Function '%s' not declared\n", $2);
                 YYERROR;
             }
-            int expected = ctx->name_table.ids[idx].n_params;
-            int got = 0;
-            node_t* arg = $4;
-            while (arg && arg->value_type == OPERATOR && arg->value.operator_code == PARAM_LINKER) {
-                got++;
-                arg = arg->right;
-            }
-            if (got != expected) {
-                fprintf(stderr, "Function '%s' expects %d arguments, got %d\n",
-                        ctx->name_table.ids[idx].name, expected, got);
-                YYERROR;
-            }
+            node_t* id = _IDENTIFIER(idx);
+            // Symmetry: Arguments go into IDENTIFIER->left
+            id->left = ($4) ? reverse_statement_list($4) : NULL;
+            node_t* call = _OPERATOR(CALL);
             call->left = id;
-            call->left->left = $4;
             $$ = call;
             free($2);
         }
     ;
 
 argument_list
-    : /* empty */   { $$ = NULL; }
-    | TK_COLON expression      { $$ = make_linker($2); }
+    : /* empty */ { $$ = NULL; }
     | argument_list TK_COLON expression
         {
             node_t* linker = _OPERATOR(PARAM_LINKER);
@@ -347,32 +301,40 @@ argument_list
             linker->right = $1;
             $$ = linker;
         }
+    | TK_COLON expression
+        {
+            node_t* linker = _OPERATOR(PARAM_LINKER);
+            linker->left = $2;
+            linker->right = NULL;
+            $$ = linker;
+        }
     ;
 
-/* ------------------------------------------------------------------
-   EXPRESSIONS
-   ------------------------------------------------------------------ */
 expression
     : additive_expr { $$ = $1; }
     ;
 
 additive_expr
-    : multiplicative_expr                      { $$ = $1; }
+    : multiplicative_expr                         { $$ = $1; }
     | additive_expr TK_PLUS multiplicative_expr   { $$ = make_binary_op(ADD, $1, $3); }
     | additive_expr TK_MINUS multiplicative_expr  { $$ = make_binary_op(SUB, $1, $3); }
     ;
 
 multiplicative_expr
-    : unary_expr                               { $$ = $1; }
+    : unary_expr                                 { $$ = $1; }
     | multiplicative_expr TK_STAR unary_expr      { $$ = make_binary_op(MUL, $1, $3); }
     | multiplicative_expr TK_SLASH unary_expr     { $$ = make_binary_op(DIV, $1, $3); }
     ;
 
 unary_expr
-    : primary_expr                             { $$ = $1; }
-    | TK_MINUS primary_expr                    { $$ = make_unary_op(SUB, $2); }
-    | TK_SQRT TK_L_ROUND TK_COLON primary_expr TK_R_ROUND { $$ = make_unary_op(SQRT, $4); }
-    ;
+    : primary_expr                                { $$ = $1; }
+    | TK_MINUS primary_expr                       { $$ = make_unary_op(SUB, $2); }
+    | TK_SQRT TK_L_ROUND TK_COLON expression TK_R_ROUND 
+        { 
+            node_t* sqrt_node = _OPERATOR(SQRT);
+            sqrt_node->left = make_linker($4);
+            $$ = sqrt_node;
+        }
 
 primary_expr
     : TK_NUMBER   { $$ = _NUMBER($1); }
@@ -380,7 +342,7 @@ primary_expr
         {
             size_t idx = get_identifier_index($1);
             if (check_var(ctx, &idx, ON_INITED) != LANG_SUCCESS) {
-                fprintf(stderr, "Use of undeclared variable '%s'\n", $1);
+                fprintf(stderr, "Error: Undeclared variable '%s'\n", $1);
                 YYERROR;
             }
             $$ = _IDENTIFIER(idx);
@@ -389,38 +351,23 @@ primary_expr
     | TK_L_ROUND expression TK_R_ROUND { $$ = $2; }
     | TK_CALL TK_IDENTIFIER TK_L_ROUND argument_list TK_R_ROUND
         {
-            /* Inline call as expression – same logic as call_stmt */
-            node_t* call = _OPERATOR(CALL);
-            node_t* id = _IDENTIFIER(get_identifier_index($2));
-            size_t idx = id->value.id_index;
+            size_t idx = get_identifier_index($2);
             if (check_var(ctx, &idx, ON_INITED) != LANG_SUCCESS) {
-                fprintf(stderr, "Function '%s' not declared\n", $2);
+                fprintf(stderr, "Error: Function '%s' not declared\n", $2);
                 YYERROR;
             }
-            int expected = ctx->name_table.ids[idx].n_params;
-            int got = 0;
-            node_t* arg = $4;
-            while (arg && arg->value_type == OPERATOR && arg->value.operator_code == PARAM_LINKER) {
-                got++;
-                arg = arg->right;
-            }
-            if (got != expected) {
-                fprintf(stderr, "Function '%s' expects %d arguments, got %d\n",
-                        ctx->name_table.ids[idx].name, expected, got);
-                YYERROR;
-            }
+            node_t* id = _IDENTIFIER(idx);
+            id->left = ($4) ? reverse_statement_list($4) : NULL;
+            node_t* call = _OPERATOR(CALL);
             call->left = id;
-            call->left->left = $4;
             $$ = call;
             free($2);
         }
     ;
-
 %%
 
 void yyerror(const char* s) {
-    fprintf(stderr, "Parse error at line %d, column %d: %s\n",
-            yylloc.first_line, yylloc.first_column, s);
+    fprintf(stderr, "Parse error at line %d: %s\n", yylineno, s);
 }
 
 /* ---------- Semantic helper implementations ---------- */

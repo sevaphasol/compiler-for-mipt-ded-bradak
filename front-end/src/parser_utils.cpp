@@ -1,13 +1,18 @@
 #include "parser_utils.h"
 #include "node_allocator.h"
 #define _DSL_DEFINE_
-#include "dsl.h"           
+#include "dsl.h"                  // for _OPERATOR, _IDENTIFIER, _NUMBER
 #undef _DSL_DEFINE_
-
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>               // for fprintf in check_var (error messages)
 
+/* global context pointer – defined in main.cpp */
 extern lang_ctx_t* ctx;
+
+/* ------------------------------------------------------------------ */
+/* Name table helpers                                                 */
+/* ------------------------------------------------------------------ */
 
 size_t add_identifier(const char* name) {
     for (size_t i = 0; i < ctx->name_table.n_names; i++) {
@@ -26,8 +31,13 @@ size_t get_identifier_index(const char* name) {
         if (strcmp(ctx->name_table.names[i].name, name) == 0)
             return i;
     }
+    /* auto-insert if not found (safe for forward references) */
     return add_identifier(name);
 }
+
+/* ------------------------------------------------------------------ */
+/* AST node constructors                                              */
+/* ------------------------------------------------------------------ */
 
 node_t* make_binary_op(operator_code_t op, node_t* left, node_t* right) {
     node_t* n = _OPERATOR(op);
@@ -39,6 +49,7 @@ node_t* make_binary_op(operator_code_t op, node_t* left, node_t* right) {
 node_t* make_unary_op(operator_code_t op, node_t* operand) {
     node_t* n = _OPERATOR(op);
     n->left = operand;
+    n->right = NULL;
     return n;
 }
 
@@ -56,6 +67,10 @@ node_t* make_linker(node_t* operand) {
     return n;
 }
 
+/* ------------------------------------------------------------------ */
+/* Tree utilities                                                     */
+/* ------------------------------------------------------------------ */
+
 size_t count_nodes(node_t* node) {
     if (!node) return 0;
     return 1 + count_nodes(node->left) + count_nodes(node->right);
@@ -72,3 +87,25 @@ node_t* reverse_statement_list(node_t* head) {
     }
     return prev;
 }
+
+/* Reverses a PARAM_LINKER chain (same logic, used for both param lists
+   and argument lists to get the correct left-to-right order) */
+node_t* reverse_param_list(node_t* head) {
+    node_t* prev = NULL;
+    node_t* curr = head;
+    while (curr) {
+        node_t* next = curr->right;
+        curr->right = prev;
+        prev = curr;
+        curr = next;
+    }
+    return prev;
+}
+
+/* ------------------------------------------------------------------ */
+/* Semantic helpers – will be moved to a separate pass later.         */
+/* For now they are needed to resolve identifier indices correctly.   */
+/* ------------------------------------------------------------------ */
+
+#define ON_REDECLARATION 0
+#define ON_INITED        1
