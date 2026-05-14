@@ -312,6 +312,19 @@ lang_status_t new_func_to_ir(lang_ctx_t* ctx,
 
 //——————————————————————————————————————————————————————————————————————————————
 
+lang_status_t func_decl_to_ir(lang_ctx_t* ctx,
+                             node_t*     node)
+{
+    ASSERT(ctx);
+    ASSERT(node);
+
+    // EMPTY
+
+    return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
 lang_status_t return_to_ir(lang_ctx_t* ctx, node_t* node)
 {
     ASSERT(ctx);

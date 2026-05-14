@@ -27,6 +27,7 @@ static lang_status_t push_new_id_counter(lang_ctx_t* ctx);
 static lang_status_t pop_locales(lang_ctx_t* ctx);
 static lang_status_t check_var(lang_ctx_t* ctx, size_t* ind, int mode);
 static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t* node, bool is_global);
+static int find_existing_id(lang_ctx_t* ctx, size_t name_idx);
 %}
 
 %locations
@@ -38,7 +39,7 @@ static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t*
     node_t* node;
 }
 
-%token TK_TILDE TK_COLON
+%token TK_TILDE TK_COLON TK_FDECL
 %token TK_FUNC TK_VAR TK_IF TK_ELSE TK_WHILE TK_RETURN TK_PRINT TK_SCAN TK_CALL TK_SQRT
 %token TK_ASSIGN TK_PLUS TK_MINUS TK_STAR TK_SLASH
 %token TK_L_ROUND TK_R_ROUND TK_L_CURLY TK_R_CURLY
@@ -46,7 +47,7 @@ static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t*
 %token <str> TK_IDENTIFIER
 %token TK_ERROR
 
-%type <node> program top_level_list top_level_decl function_def var_decl
+%type <node> program top_level_list top_level_decl function_def function_decl var_decl 
 %type <node> param_list param param_rest
 %type <node> body statement_list statement
 %type <node> assignment if_stmt while_stmt return_stmt
@@ -78,20 +79,70 @@ top_level_list
 
 top_level_decl
     : TK_TILDE { is_global_context = 1; } function_def   { $$ = $3; }
+    | TK_TILDE { is_global_context = 1; } function_decl  { $$ = $3; }
     | TK_TILDE { is_global_context = 1; } var_decl       { $$ = $3; }
+    ;
+
+function_decl
+    : TK_FDECL TK_IDENTIFIER
+      {
+          size_t name_idx = add_identifier($2);
+
+          int existing = find_existing_id(ctx, name_idx);
+          if (existing >= 0) {
+              fprintf(stderr, "Error: '%s' already declared or defined\n", $2);
+              YYERROR;
+          }
+
+          node_t* func_id = _IDENTIFIER(name_idx);
+          add_new_id(ctx, FUNC, func_id, true);
+          push_new_id_counter(ctx);
+          $<node>$ = func_id;
+          free($2);
+      }
+      TK_L_ROUND param_list TK_R_ROUND
+      {
+          int n_params = 0;
+          node_t* p = $5;
+          while (p && p->value_type == OPERATOR && p->value.operator_code == PARAM_LINKER) {
+              n_params++;
+              p = p->right;
+          }
+
+          node_t* func_id = $<node>3;
+          ctx->name_table.ids[func_id->value.id_index].n_params = n_params;
+          func_id->left = $5;           
+
+          pop_locales(ctx);             // parameters go out of scope
+
+          node_t* decl_node = _OPERATOR(FUNC_DECL);
+          decl_node->left = func_id;
+          decl_node->right = NULL;      // no body
+          $$ = decl_node;
+      }
     ;
 
 function_def
     : TK_FUNC TK_IDENTIFIER
       {
-          size_t idx = add_identifier($2);
-          if (check_var(ctx, &idx, ON_REDECLARATION) != LANG_SUCCESS) {
-              fprintf(stderr, "Error: Redeclaration of function '%s'\n", $2);
+          size_t name_idx = add_identifier($2);
+
+          int existing = find_existing_id(ctx, name_idx);
+          if (existing >= 0) {
+              identifier_t* id = &ctx->name_table.ids[existing];
+              if (id->type == FUNC) {
+                  fprintf(stderr, "Error: Redefinition of function '%s'\n", $2);
+              } else if (id->type == FUNC_DECL) {
+                  fprintf(stderr, "Error: Function '%s' was already declared; definition not allowed\n", $2);
+              } else {
+                  fprintf(stderr, "Error: '%s' is already used as a variable\n", $2);
+              }
               YYERROR;
           }
-          node_t* func_id = _IDENTIFIER(idx);
+
+          node_t* func_id = _IDENTIFIER(name_idx);
           add_new_id(ctx, FUNC, func_id, true);
-          push_new_id_counter(ctx); 
+          push_new_id_counter(ctx);
           $<node>$ = func_id;
           free($2);
       }
@@ -105,14 +156,14 @@ function_def
           }
           node_t* func_id = $<node>3;
           ctx->name_table.ids[func_id->value.id_index].n_params = n_params;
-          func_id->left = $5; // Attach params to the identifier
+          func_id->left = $5;
       }
       body
       {
           node_t* func_id   = $<node>3;
           node_t* func_node = _OPERATOR(NEW_FUNC);
           func_node->left   = func_id;
-          func_id->right    = $8; // Body on the right
+          func_id->right    = $8;
           pop_locales(ctx);
           $$ = func_node;
       }
@@ -427,3 +478,18 @@ static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t*
     ctx->name_table.n_ids++;
     return stack_push(ctx, new_id);
 }
+
+static int find_existing_id(lang_ctx_t* ctx, size_t name_idx) {
+    stack_t* id_stack = &ctx->id_stack;
+    name_t*  names    = ctx->name_table.names;
+    identifier_t* ids = ctx->name_table.ids;
+
+    for (int i = (int)id_stack->top - 1; i >= 0; i--) {
+        size_t id_idx = id_stack->data[i];
+        if (strcmp(names[name_idx].name, ids[id_idx].name) == 0) {
+            return (int)id_idx;
+        }
+    }
+    return -1;
+}
+

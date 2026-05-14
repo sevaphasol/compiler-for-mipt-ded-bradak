@@ -59,7 +59,7 @@ newline     [\n]
 "scan"           { print_token("TK_SCAN", TK_SCAN, yylineno, yycolumn - yyleng); return TK_SCAN; }
 "call"           { print_token("TK_CALL", TK_CALL, yylineno, yycolumn - yyleng); return TK_CALL; }
 "sqrt"           { print_token("TK_SQRT", TK_SQRT, yylineno, yycolumn - yyleng); return TK_SQRT; }
-
+"fdecl"          { print_token("TK_FDECL", TK_FDECL, yylineno, yycolumn - yyleng); return TK_FDECL; }
 "="              { print_token("TK_ASSIGN", TK_ASSIGN, yylineno, yycolumn - yyleng); return TK_ASSIGN; }
 "+"              { print_token("TK_PLUS", TK_PLUS, yylineno, yycolumn - yyleng); return TK_PLUS; }
 "-"              { print_token("TK_MINUS", TK_MINUS, yylineno, yycolumn - yyleng); return TK_MINUS; }
