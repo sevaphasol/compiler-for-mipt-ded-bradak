@@ -416,35 +416,35 @@ lang_status_t while_to_ir(lang_ctx_t* ctx, node_t* node)
 
 //——————————————————————————————————————————————————————————————————————————————
 
-// lang_status_t in_to_ir(lang_ctx_t* ctx, node_t* node)
-// {
-//     ASSERT(ctx);
-//     ASSERT(node);
+lang_status_t in_to_ir(lang_ctx_t* ctx, node_t* node)
+{
+    ASSERT(ctx);
+    ASSERT(node);
 
-//     identifier_t var = _ID(node->left->left);
+    identifier_t var = _ID(node->left->left);
 
-//     EMIT(OP_IN);
-//     EMIT(OP_MOV(OPD_MEM(-var.addr), OPD_REG(REG_RAX)));
+    EMIT(OP_IN);
+    EMIT(OP_MOV(OPD_MEM(-var.addr), OPD_REG(REG_RAX)));
 
-//     return LANG_SUCCESS;
-// }
+    return LANG_SUCCESS;
+}
 
-// //——————————————————————————————————————————————————————————————————————————————
+//——————————————————————————————————————————————————————————————————————————————
 
-// lang_status_t out_to_ir(lang_ctx_t* ctx, node_t* node)
-// {
-//     ASSERT(ctx);
-//     ASSERT(node);
+lang_status_t out_to_ir(lang_ctx_t* ctx, node_t* node)
+{
+    ASSERT(ctx);
+    ASSERT(node);
 
-//     node_t* arg = node->left->left;
+    node_t* arg = node->left->left;
 
-//     node_to_ir(ctx, arg);
+    node_to_ir(ctx, arg);
 
-//     EMIT(OP_OUT);
-//     EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(VAR_SIZE)));
+    EMIT(OP_OUT);
+    EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(VAR_SIZE)));
 
-//     return LANG_SUCCESS;
-// }
+    return LANG_SUCCESS;
+}
 
 //——————————————————————————————————————————————————————————————————————————————
 

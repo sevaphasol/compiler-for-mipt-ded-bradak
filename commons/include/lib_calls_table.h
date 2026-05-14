@@ -29,7 +29,7 @@ struct lib_calls_table_t {
     size_t              size;
 
     size_t              in_addr;
-    size_t              out_addr
+    size_t              out_addr;
     bool                load_in;
     bool                load_out;
 };
