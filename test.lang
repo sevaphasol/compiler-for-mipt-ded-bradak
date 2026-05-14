@@ -1,0 +1,9 @@
+
+~ func main()
+{
+    ~ var test = 52
+    
+    ~ print(: test)    
+
+    ~ return 0
+}

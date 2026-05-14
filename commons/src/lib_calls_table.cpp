@@ -45,11 +45,11 @@ lang_status_t lib_calls_table_dtor(lib_calls_table_t* table)
 //——————————————————————————————————————————————————————————————————————————————
 
 lang_status_t add_lib_call_request(lib_calls_table_t*      table,
-                                   lib_call_request_type_t type,
+                                   char *                  name,
                                    size_t                  addr)
 {
     ASSERT(table);
-    ASSERT(type != LIB_CALL_INVALID);
+    // ASSERT(type != LIB_CALL_INVALID);
 
     if (table->size >= table->capacity) {
         table->requests = (lib_call_request_t*) realloc(table->requests,
@@ -63,15 +63,15 @@ lang_status_t add_lib_call_request(lib_calls_table_t*      table,
     }
 
     table->requests[table->size++] = {
-        .type = type,
+        .name = name,
         .addr = addr
     };
 
-    if         (type == LIB_CALL_IN  && !table->load_in) {
-        table->load_in = true;
-    } else if  (type == LIB_CALL_OUT && !table->load_out) {
-        table->load_out = true;
-    }
+    // if         (type == LIB_CALL_IN  && !table->load_in) {
+    //     table->load_in = true;
+    // } else if  (type == LIB_CALL_OUT && !table->load_out) {
+    //     table->load_out = true;
+    // }
 
     return LANG_SUCCESS;
 }
@@ -231,8 +231,8 @@ lang_status_t stdlib_data_append_and_free(stdlib_data_t *data, buffer_t *bin_buf
     data->text_data = NULL;
     data->text_size = 0;
 
-    printf("stdlib: appended .text (%zu bytes) at offset 0x%zx\n",
-           data->text_size, data->base_offset);
+    // printf("stdlib: appended .text (%zu bytes) at offset 0x%zx\n",
+    //        data->text_size, data->base_offset);
     return LANG_SUCCESS;
 }
 
@@ -255,20 +255,15 @@ lang_status_t solve_lib_call_requests(lang_ctx_t *ctx) {
                return LANG_ERROR);
     }
 
+    fprintf(stderr, "LOG: ctx->lib_calls_table.size: %d\n", ctx->lib_calls_table.size);
+
     for (size_t i = 0; i < ctx->lib_calls_table.size; ++i) {
         lib_call_request_t *req = &ctx->lib_calls_table.requests[i];
-        const char *func_name = NULL;
-
-        if (req->type == LIB_CALL_IN)
-            func_name = "scan";
-        else if (req->type == LIB_CALL_OUT)
-            func_name = "print";
-        else
-            continue;   // unknown type
-
-        uint32_t offset = stdlib_data_get_offset(&ctx->stdlib_data, func_name);
+        ASSERT(req->name);
+        fprintf(stderr, "LOG: stdlib function '%s' resolved\n", req->name);
+        uint32_t offset = stdlib_data_get_offset(&ctx->stdlib_data, req->name);
         if (offset == (uint32_t)-1) {
-            fprintf(stderr, "ERROR: stdlib function '%s' not found\n", func_name);
+            fprintf(stderr, "ERROR: stdlib function '%s' not found\n", req->name);
             return LANG_ERROR;
         }
 

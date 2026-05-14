@@ -526,7 +526,7 @@ lang_status_t encode_in(lang_ctx_t*  ctx,
                         bin_instr_t* bin_instr)
 {
     add_lib_call_request(&ctx->lib_calls_table,
-                         LIB_CALL_IN,
+                         "scan",
                          ctx->bin_buf.size + 1);
 
     return encode_lib_func(ctx, ir_instr, bin_instr);
@@ -539,7 +539,7 @@ lang_status_t encode_out(lang_ctx_t*  ctx,
                          bin_instr_t* bin_instr)
 {
     add_lib_call_request(&ctx->lib_calls_table,
-                         LIB_CALL_OUT,
+                         "print",
                          ctx->bin_buf.size + 1);
 
     return encode_lib_func(ctx, ir_instr, bin_instr);

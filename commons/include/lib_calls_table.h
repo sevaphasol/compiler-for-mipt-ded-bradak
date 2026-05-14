@@ -7,16 +7,19 @@
 
 //——————————————————————————————————————————————————————————————————————————————
 
-enum lib_call_request_type_t {
-    LIB_CALL_INVALID = 0,
-    LIB_CALL_IN      = 1,
-    LIB_CALL_OUT     = 2,
-};
+// enum lib_call_request_type_t { 
+//     LIB_CALL_INVALID = 0,
+//     LIB_CALL_IN      = 1,
+//     LIB_CALL_OUT     = 2,
+//     LIB_CALL         = 3 
+// };
 
 //——————————————————————————————————————————————————————————————————————————————
 
 struct lib_call_request_t {
-    lib_call_request_type_t type;
+    char                   *name;// I need to add char * in lib_call_request_t to 
+                                  // define which function to resolve from stdlib.bin 
+    // lib_call_request_type_t type; 
     size_t                  addr;
 };
 
