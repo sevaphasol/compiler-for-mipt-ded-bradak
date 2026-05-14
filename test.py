@@ -1,23 +1,11 @@
 #!/usr/bin/env python3
 """
 Auto‑build + test runner for .lang files.
-
-Usage:
-    python test_compiler.py
-
-Phases:
-    1. make
-    2. For each .lang file under examples/:
-         a. Compile with run.sh  ->  test_output/<relative>.out
-         b. If compilation succeeds, launch the .out file.
-            - stdin is closed (no input) and a timeout is enforced.
-            - Any crash (signal) or timeout is reported.
-            - Normal exits (even with non‑zero exit codes) are considered
-              successful launches.
 """
 
 import subprocess
 import sys
+import signal
 from pathlib import Path
 
 # --------------------------------------------------------------------
@@ -37,7 +25,6 @@ def compile_file(src: Path, dst: Path) -> subprocess.CompletedProcess:
         return subprocess.run(cmd, capture_output=True, text=True,
                               timeout=COMPILE_TIMEOUT)
     except subprocess.TimeoutExpired:
-        # Create a dummy CompletedProcess to indicate timeout
         return subprocess.CompletedProcess(cmd, -1, "", "Compilation timed out")
 
 
@@ -45,8 +32,6 @@ def launch_executable(exe: Path) -> tuple[int, str]:
     """
     Try to run the executable.
     Returns (exit_code, message).
-    exit_code >= 0  -> normal exit
-    exit_code < 0   -> killed by signal (value is -signal)
     """
     try:
         proc = subprocess.run([str(exe)], capture_output=True, text=True,
@@ -69,8 +54,6 @@ def launch_executable(exe: Path) -> tuple[int, str]:
 
 
 def main():
-    import signal  # for signal name resolution
-
     # 1. Build
     print("=== Building compiler ===")
     result = subprocess.run(["make"], cwd=PROJECT_ROOT, capture_output=True,
@@ -96,6 +79,9 @@ def main():
     compile_fail = 0
     launch_ok = 0
     launch_fail = 0
+    
+    # List to track failed test paths
+    failed_test_paths = []
 
     print(f"=== Processing {total} file(s) ===")
 
@@ -114,15 +100,17 @@ def main():
 
             # Launch
             exit_code, msg = launch_executable(out_file)
-            if exit_code >= 0:
+            # Treat exit_code 0 as success, others as failure
+            if exit_code == 0:
                 launch_ok += 1
                 print(f"  Launch: OK (exit code {exit_code})")
             else:
                 launch_fail += 1
-                print(f"  Launch: FAILED ({msg})")
-                # optionally print stderr if captured, but we didn't capture in launch_executable
+                failed_test_paths.append(str(lang_file))
+                print(f"  Launch: FAILED (exit code {exit_code}, msg: {msg})")
         else:
             compile_fail += 1
+            failed_test_paths.append(str(lang_file))
             print("  Compilation: FAILED")
             if compile_proc.stdout:
                 for line in compile_proc.stdout.splitlines():
@@ -140,8 +128,14 @@ def main():
     print(f"Launch passed:      {launch_ok}")
     print(f"Launch failed:      {launch_fail}")
 
-    if compile_fail > 0 or launch_fail > 0:
+    # Print failed paths at the very end
+    if failed_test_paths:
+        print("\nFAILED TEST PATHS:")
+        for path in failed_test_paths:
+            print(f"  {path}")
         sys.exit(1)
+    else:
+        print("\nALL TESTS PASSED.")
 
 if __name__ == "__main__":
     main()
