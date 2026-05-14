@@ -43,9 +43,6 @@
 #define OP_RET     (ir_instr_t){IR_OPC_RET,     {}, {}}
 #define OP_SYSCALL (ir_instr_t){IR_OPC_SYSCALL, {}, {}}
 
-#define OP_IN      (ir_instr_t){IR_OPC_IN,  {}, {}}
-#define OP_OUT     (ir_instr_t){IR_OPC_OUT, {}, {}}
-
 #define OP_FILDL(_opd)  (ir_instr_t){IR_OPC_FILDL,  _opd, {}}
 #define OP_FSQRT        (ir_instr_t){IR_OPC_FSQRT,  {},   {}}
 #define OP_FISTPL(_opd) (ir_instr_t){IR_OPC_FISTPL, _opd, {}}

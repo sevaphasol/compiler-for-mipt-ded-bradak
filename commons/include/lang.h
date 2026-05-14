@@ -61,10 +61,8 @@ enum operator_code_t
     NEW_VAR       = 21,
     NEW_FUNC_DEF  = 22,
     NEW_FUNC_DECL = 23,
-    IN            = 24,
-    OUT           = 25,
-    CALL          = 26,
-    HLT           = 27,
+    CALL          = 24,
+    HLT           = 25,
 };
 
 //———————————————————————————————————————————————————————————————————//
@@ -95,8 +93,6 @@ lang_status_t new_var_to_ir           (lang_ctx_t* ctx, node_t* node);
 lang_status_t new_func_to_ir          (lang_ctx_t* ctx, node_t* node);
 lang_status_t func_decl_to_ir         (lang_ctx_t* ctx, node_t* node);
 lang_status_t return_to_ir            (lang_ctx_t* ctx, node_t* node);
-lang_status_t in_to_ir                (lang_ctx_t* ctx, node_t* node);
-lang_status_t out_to_ir               (lang_ctx_t* ctx, node_t* node);
 lang_status_t call_to_ir              (lang_ctx_t* ctx, node_t* node);
 lang_status_t exit_to_ir              (lang_ctx_t* ctx, node_t* node);
 lang_status_t var_to_ir               (lang_ctx_t* ctx, node_t* node);
@@ -133,8 +129,6 @@ const operator_t OperatorsTable[] =
     {NEW_VAR,       STR_AND_LEN("var"),       nullptr,       2,          &new_var_to_ir          , nullptr},
     {NEW_FUNC_DEF,  STR_AND_LEN("func"),      nullptr,       2,          &new_func_to_ir         , nullptr},
     {NEW_FUNC_DECL, STR_AND_LEN("fdecl"),     nullptr,       2,          &func_decl_to_ir        , nullptr},
-    {IN,            STR_AND_LEN("scan"),      "in",          1,          &in_to_ir               , nullptr},
-    {OUT,           STR_AND_LEN("print"),     "out",         1,          &out_to_ir              , nullptr},
     {CALL,          STR_AND_LEN("call"),      "call",        0,          &call_to_ir             , nullptr},
     {HLT,           STR_AND_LEN("exit"),      nullptr,       0,          &exit_to_ir             , nullptr}
 };
