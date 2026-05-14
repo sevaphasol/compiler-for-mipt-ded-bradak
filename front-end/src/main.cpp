@@ -9,7 +9,6 @@
 extern int yyparse(void);
 extern FILE* yyin;
 
-/* Global context pointer – definition */
 lang_ctx_t* ctx;
 
 int main(int argc, const char* argv[])
@@ -24,13 +23,11 @@ int main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    /* rewind because lang_ctx_ctor already read the whole file */
     rewind(ctx_local.input_file);
 
     ctx = &ctx_local;
     yyin = ctx_local.input_file;
 
-    /* Parsing – all semantic checks are done inside */
     if (yyparse() != 0)
     {
         fprintf(stderr, "Parsing failed\n");
@@ -38,7 +35,6 @@ int main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    /* Post‑parsing: output and dump (as in your old main) */
     name_table_output(&ctx_local);
     tree_output(&ctx_local, ctx_local.tree);
     graph_dump(&ctx_local, ctx_local.tree, TREE);
