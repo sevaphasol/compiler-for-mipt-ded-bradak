@@ -28,6 +28,8 @@ static lang_status_t pop_locales(lang_ctx_t* ctx);
 static lang_status_t check_var(lang_ctx_t* ctx, size_t* ind, int mode);
 static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t* node, bool is_global);
 static int find_existing_id(lang_ctx_t* ctx, size_t name_idx);
+static void ast_set_parents(node_t* node, node_t* parent);
+
 %}
 
 %locations
@@ -66,6 +68,7 @@ program
           ctx->nodes[0] = root;
           ctx->n_nodes = count_nodes(root);
           pop_locales(ctx);
+          ast_set_parents(root, NULL);
       }
     ;
 
@@ -299,30 +302,6 @@ return_stmt
     | TK_RETURN             { $$ = _OPERATOR(RET); $$->left = NULL; }
     ;
 
-/* print_stmt
-    : TK_PRINT TK_L_ROUND TK_COLON expression TK_R_ROUND
-        {
-            node_t* print = _OPERATOR(OUT);
-            print->left = make_linker($4);
-            $$ = print;
-        }
-    ;
-
-scan_stmt
-    : TK_SCAN TK_L_ROUND TK_COLON TK_IDENTIFIER TK_R_ROUND
-        {
-            size_t idx = get_identifier_index($4);
-            if (check_var(ctx, &idx, ON_INITED) != LANG_SUCCESS) {
-                fprintf(stderr, "Error: Variable '%s' not declared\n", $4);
-                YYERROR;
-            }
-            node_t* scan = _OPERATOR(IN);
-            scan->left = make_linker(_IDENTIFIER(idx));
-            $$ = scan;
-            free($4);
-        }
-    ; */
-
 call_stmt
     : TK_CALL TK_IDENTIFIER TK_L_ROUND argument_list TK_R_ROUND
         {
@@ -491,3 +470,11 @@ static int find_existing_id(lang_ctx_t* ctx, size_t name_idx) {
     return -1;
 }
 
+static void ast_set_parents(node_t* node, node_t* parent) {
+    if (!node) return;
+
+    node->parent = parent;
+
+    ast_set_parents(node->left,  node);
+    ast_set_parents(node->right, node);
+}

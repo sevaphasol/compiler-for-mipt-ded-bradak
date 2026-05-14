@@ -121,20 +121,23 @@ lang_status_t call_to_ir(lang_ctx_t* ctx, node_t* node)
         return LANG_SUCCESS;
     } 
     
-     if (func_id.type == FUNC_DECL) {
-        printf("call FUNC_DECL `%s` to ir\n", func_id.name);
+    if (func_id.type == FUNC_DECL) {
         passing_func_params_to_ir(ctx, func_params, func_id.n_params);
         EMIT(OP_CALL(OPD_STDLIB_LABEL(func_id.name)));
 
         int32_t allocated_memory = VAR_SIZE * func_id.n_params;
 
         EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
-        EMIT(OP_PUSH(OPD_REG(REG_RAX)));
+        int type = call->parent ? call->parent->value.operator_code : -1;
+        if (!call->parent || call->parent->value.operator_code != STATEMENT) { 
+            // do not pop return value if call is statement and its return value is not used
+            EMIT(OP_PUSH(OPD_REG(REG_RAX)));
+        }
+        
         return LANG_SUCCESS;
     }
 
     fprintf(stderr, "call_to_ir : unknown func_id type: %d\n", func_id.type);
-    
     return LANG_ERROR;   
 }
 

@@ -197,6 +197,7 @@ struct node_t
     size_t       line_number;
     node_t*      left;
     node_t*      right;
+    node_t*      parent;
 };
 
 //———————————————————————————————————————————————————————————————————//

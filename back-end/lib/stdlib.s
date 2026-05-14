@@ -58,6 +58,7 @@ print:
         mov rdi, 1 ; stdout
         syscall
 
+        xor eax, eax
         add rsp, 16
         ret
 

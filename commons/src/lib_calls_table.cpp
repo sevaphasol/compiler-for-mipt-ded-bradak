@@ -225,8 +225,8 @@ lang_status_t stdlib_data_append_and_free(stdlib_data_t *data, buffer_t *bin_buf
     data->text_data = NULL;
     data->text_size = 0;
 
-    printf("stdlib: appended .text (%zu bytes) at offset 0x%zx\n",
-           data->text_size, data->base_offset);
+    // printf("stdlib: appended .text (%zu bytes) at offset 0x%zx\n",
+    //        data->text_size, data->base_offset);
     return LANG_SUCCESS;
 }
 
@@ -252,7 +252,6 @@ lang_status_t solve_lib_call_requests(lang_ctx_t *ctx) {
     for (size_t i = 0; i < ctx->lib_calls_table.size; ++i) {
         lib_call_request_t *req = &ctx->lib_calls_table.requests[i];
         const char *func_name = req->name;
-        printf("resolve `%s`\n", func_name);
         uint32_t offset = stdlib_data_get_offset(&ctx->stdlib_data, func_name);
         if (offset == (uint32_t)-1) {
             fprintf(stderr, "ERROR: stdlib function '%s' not found\n", func_name);
@@ -265,8 +264,8 @@ lang_status_t solve_lib_call_requests(lang_ctx_t *ctx) {
 
         memcpy(ctx->bin_buf.data + patch_addr, &rel, 4);
 
-        printf("Patched %s call at 0x%x -> target 0x%lx (rel = %d)\n",
-               func_name, patch_addr, target_addr, rel);
+        // printf("Patched %s call at 0x%x -> target 0x%lx (rel = %d)\n",
+        //        func_name, patch_addr, target_addr, rel);
     }
 
     return LANG_SUCCESS;
