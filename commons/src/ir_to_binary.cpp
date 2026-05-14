@@ -521,6 +521,19 @@ lang_status_t encode_lib_func(lang_ctx_t*  ctx,
 
 //——————————————————————————————————————————————————————————————————————————————
 
+// lang_status_t encode_decl_call(lang_ctx_t*  ctx,
+//                         ir_instr_t*  ir_instr,
+//                         bin_instr_t* bin_instr)
+// {
+//     add_lib_call_request(&ctx->lib_calls_table,
+//                          LIB_CALL_IN,
+//                          ctx->bin_buf.size + 1);
+
+//     return encode_lib_func(ctx, ir_instr, bin_instr);
+// }
+
+//——————————————————————————————————————————————————————————————————————————————
+
 lang_status_t encode_in(lang_ctx_t*  ctx,
                         ir_instr_t*  ir_instr,
                         bin_instr_t* bin_instr)

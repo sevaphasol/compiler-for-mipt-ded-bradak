@@ -40,7 +40,7 @@ static int find_existing_id(lang_ctx_t* ctx, size_t name_idx);
 }
 
 %token TK_TILDE TK_COLON TK_FDECL
-%token TK_FUNC TK_VAR TK_IF TK_ELSE TK_WHILE TK_RETURN TK_PRINT TK_SCAN TK_CALL TK_SQRT
+%token TK_FUNC TK_VAR TK_IF TK_ELSE TK_WHILE TK_RETURN TK_CALL TK_SQRT
 %token TK_ASSIGN TK_PLUS TK_MINUS TK_STAR TK_SLASH
 %token TK_L_ROUND TK_R_ROUND TK_L_CURLY TK_R_CURLY
 %token <num> TK_NUMBER
@@ -51,7 +51,7 @@ static int find_existing_id(lang_ctx_t* ctx, size_t name_idx);
 %type <node> param_list param param_rest
 %type <node> body statement_list statement
 %type <node> assignment if_stmt while_stmt return_stmt
-%type <node> print_stmt scan_stmt call_stmt
+%type <node> call_stmt
 %type <node> expression additive_expr multiplicative_expr unary_expr primary_expr
 %type <node> argument_list
 
@@ -95,7 +95,7 @@ function_decl
           }
 
           node_t* func_id = _IDENTIFIER(name_idx);
-          add_new_id(ctx, FUNC, func_id, true);
+          add_new_id(ctx, FUNC_DECL, func_id, true);
           push_new_id_counter(ctx);
           $<node>$ = func_id;
           free($2);
@@ -115,7 +115,7 @@ function_decl
 
           pop_locales(ctx);             // parameters go out of scope
 
-          node_t* decl_node = _OPERATOR(FUNC_DECL);
+          node_t* decl_node = _OPERATOR(NEW_FUNC_DECL);
           decl_node->left = func_id;
           decl_node->right = NULL;      // no body
           $$ = decl_node;
@@ -130,9 +130,9 @@ function_def
           int existing = find_existing_id(ctx, name_idx);
           if (existing >= 0) {
               identifier_t* id = &ctx->name_table.ids[existing];
-              if (id->type == FUNC) {
+              if (id->type == FUNC_DEF) {
                   fprintf(stderr, "Error: Redefinition of function '%s'\n", $2);
-              } else if (id->type == FUNC_DECL) {
+              } else if (id->type == NEW_FUNC_DECL) {
                   fprintf(stderr, "Error: Function '%s' was already declared; definition not allowed\n", $2);
               } else {
                   fprintf(stderr, "Error: '%s' is already used as a variable\n", $2);
@@ -141,7 +141,7 @@ function_def
           }
 
           node_t* func_id = _IDENTIFIER(name_idx);
-          add_new_id(ctx, FUNC, func_id, true);
+          add_new_id(ctx, FUNC_DEF, func_id, true);
           push_new_id_counter(ctx);
           $<node>$ = func_id;
           free($2);
@@ -161,7 +161,7 @@ function_def
       body
       {
           node_t* func_id   = $<node>3;
-          node_t* func_node = _OPERATOR(NEW_FUNC);
+          node_t* func_node = _OPERATOR(NEW_FUNC_DEF);
           func_node->left   = func_id;
           func_id->right    = $8;
           pop_locales(ctx);
@@ -253,8 +253,6 @@ statement
     | TK_TILDE if_stmt                                  { $$ = $2; }
     | TK_TILDE while_stmt                               { $$ = $2; }
     | TK_TILDE return_stmt                              { $$ = $2; }
-    | TK_TILDE print_stmt                               { $$ = $2; }
-    | TK_TILDE scan_stmt                                { $$ = $2; }
     | TK_TILDE call_stmt                                { $$ = $2; }
     | TK_TILDE expression                               { $$ = $2; }
     ;
@@ -301,7 +299,7 @@ return_stmt
     | TK_RETURN             { $$ = _OPERATOR(RET); $$->left = NULL; }
     ;
 
-print_stmt
+/* print_stmt
     : TK_PRINT TK_L_ROUND TK_COLON expression TK_R_ROUND
         {
             node_t* print = _OPERATOR(OUT);
@@ -323,7 +321,7 @@ scan_stmt
             $$ = scan;
             free($4);
         }
-    ;
+    ; */
 
 call_stmt
     : TK_CALL TK_IDENTIFIER TK_L_ROUND argument_list TK_R_ROUND

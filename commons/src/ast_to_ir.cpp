@@ -109,16 +109,32 @@ lang_status_t call_to_ir(lang_ctx_t* ctx, node_t* node)
 
     identifier_t func_id = ctx->name_table.ids[func->value.id_index];
 
-    passing_func_params_to_ir(ctx, func_params, func_id.n_params);
+    if (func_id.type == FUNC_DEF) {
+        passing_func_params_to_ir(ctx, func_params, func_id.n_params);
 
-    EMIT(OP_CALL(OPD_GLOBAL_LABEL(func_id.name)));
+        EMIT(OP_CALL(OPD_GLOBAL_LABEL(func_id.name)));
 
-    int32_t allocated_memory = VAR_SIZE * func_id.n_params;
+        int32_t allocated_memory = VAR_SIZE * func_id.n_params;
 
-    EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
-    EMIT(OP_PUSH(OPD_REG(REG_RAX)));
+        EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
+        EMIT(OP_PUSH(OPD_REG(REG_RAX)));
+        return LANG_SUCCESS;
+    } 
+    
+     if (func_id.type == FUNC_DECL) {
+        passing_func_params_to_ir(ctx, func_params, func_id.n_params);
+        EMIT(OP_CALL(OPD_GLOBAL_LABEL(func_id.name)));
 
-    return LANG_SUCCESS;
+        int32_t allocated_memory = VAR_SIZE * func_id.n_params;
+
+        EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
+        EMIT(OP_PUSH(OPD_REG(REG_RAX)));
+        return LANG_SUCCESS;
+    }
+
+    fprintf(stderr, "call_to_ir : unknown func_id type: %d\n", func_id.type);
+    
+    return LANG_ERROR;   
 }
 
 //——————————————————————————————————————————————————————————————————————————————
@@ -400,35 +416,35 @@ lang_status_t while_to_ir(lang_ctx_t* ctx, node_t* node)
 
 //——————————————————————————————————————————————————————————————————————————————
 
-lang_status_t in_to_ir(lang_ctx_t* ctx, node_t* node)
-{
-    ASSERT(ctx);
-    ASSERT(node);
+// lang_status_t in_to_ir(lang_ctx_t* ctx, node_t* node)
+// {
+//     ASSERT(ctx);
+//     ASSERT(node);
 
-    identifier_t var = _ID(node->left->left);
+//     identifier_t var = _ID(node->left->left);
 
-    EMIT(OP_IN);
-    EMIT(OP_MOV(OPD_MEM(-var.addr), OPD_REG(REG_RAX)));
+//     EMIT(OP_IN);
+//     EMIT(OP_MOV(OPD_MEM(-var.addr), OPD_REG(REG_RAX)));
 
-    return LANG_SUCCESS;
-}
+//     return LANG_SUCCESS;
+// }
 
-//——————————————————————————————————————————————————————————————————————————————
+// //——————————————————————————————————————————————————————————————————————————————
 
-lang_status_t out_to_ir(lang_ctx_t* ctx, node_t* node)
-{
-    ASSERT(ctx);
-    ASSERT(node);
+// lang_status_t out_to_ir(lang_ctx_t* ctx, node_t* node)
+// {
+//     ASSERT(ctx);
+//     ASSERT(node);
 
-    node_t* arg = node->left->left;
+//     node_t* arg = node->left->left;
 
-    node_to_ir(ctx, arg);
+//     node_to_ir(ctx, arg);
 
-    EMIT(OP_OUT);
-    EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(VAR_SIZE)));
+//     EMIT(OP_OUT);
+//     EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(VAR_SIZE)));
 
-    return LANG_SUCCESS;
-}
+//     return LANG_SUCCESS;
+// }
 
 //——————————————————————————————————————————————————————————————————————————————
 

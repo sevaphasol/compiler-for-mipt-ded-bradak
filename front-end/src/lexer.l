@@ -55,8 +55,6 @@ newline     [\n]
 "else"           { print_token("TK_ELSE", TK_ELSE, yylineno, yycolumn - yyleng); return TK_ELSE; }
 "while"          { print_token("TK_WHILE", TK_WHILE, yylineno, yycolumn - yyleng); return TK_WHILE; }
 "return"         { print_token("TK_RETURN", TK_RETURN, yylineno, yycolumn - yyleng); return TK_RETURN; }
-"print"          { print_token("TK_PRINT", TK_PRINT, yylineno, yycolumn - yyleng); return TK_PRINT; }
-"scan"           { print_token("TK_SCAN", TK_SCAN, yylineno, yycolumn - yyleng); return TK_SCAN; }
 "call"           { print_token("TK_CALL", TK_CALL, yylineno, yycolumn - yyleng); return TK_CALL; }
 "sqrt"           { print_token("TK_SQRT", TK_SQRT, yylineno, yycolumn - yyleng); return TK_SQRT; }
 "fdecl"          { print_token("TK_FDECL", TK_FDECL, yylineno, yycolumn - yyleng); return TK_FDECL; }

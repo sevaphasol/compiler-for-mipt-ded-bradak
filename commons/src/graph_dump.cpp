@@ -307,8 +307,8 @@ tree_dump_status_t make_elem(lang_ctx_t* ctx, node_t* node, FILE* file)
             if (node_id.type == VAR) {
                 id_type = "VAR";
             }
-            else if (node_id.type == FUNC) {
-                id_type = "FUNC";
+            else if (node_id.type == FUNC_DEF) {
+                id_type = "FUNC_DEF";
             }
 
             make_dot_ast_id(file, node,
