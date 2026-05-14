@@ -122,8 +122,9 @@ lang_status_t call_to_ir(lang_ctx_t* ctx, node_t* node)
     } 
     
      if (func_id.type == FUNC_DECL) {
+        printf("call FUNC_DECL `%s` to ir\n", func_id.name);
         passing_func_params_to_ir(ctx, func_params, func_id.n_params);
-        EMIT(OP_CALL(OPD_GLOBAL_LABEL(func_id.name)));
+        EMIT(OP_CALL(OPD_STDLIB_LABEL(func_id.name)));
 
         int32_t allocated_memory = VAR_SIZE * func_id.n_params;
 

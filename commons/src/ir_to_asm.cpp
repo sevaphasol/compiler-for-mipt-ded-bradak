@@ -86,6 +86,12 @@ lang_status_t operand_ir_to_asm(lang_ctx_t* ctx, ir_opd_t* opd)
             RAW_ASM("%s", opd->value.global_label_name);
             break;
         }
+        
+        case IR_OPD_STDLIB_LABEL: {
+            RAW_ASM("%s", opd->value.global_label_name);
+            break;
+        }
+
         default: {
             return LANG_ERROR;
         }

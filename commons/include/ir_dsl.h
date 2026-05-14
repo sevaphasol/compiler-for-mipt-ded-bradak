@@ -13,6 +13,8 @@
 
 #define OPD_GLOBAL_LABEL(_name) \
     (ir_opd_t){.type = IR_OPD_GLOBAL_LABEL, .value = {.global_label_name  = _name}}
+#define OPD_STDLIB_LABEL(_name) \
+    (ir_opd_t){.type = IR_OPD_STDLIB_LABEL, .value = {.global_label_name  = _name}}
 #define OPD_LOCAL_LABEL(_num) \
     (ir_opd_t){.type = IR_OPD_LOCAL_LABEL,  .value = {.local_label_number = _num}}
 

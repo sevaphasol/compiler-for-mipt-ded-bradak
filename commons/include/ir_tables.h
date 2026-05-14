@@ -56,8 +56,10 @@ const asm_func_t IrOpAsmFuncsTable[] = {
     [IR_OPC_JE]           = unary_opcode_ir_to_asm,
     [IR_OPC_JNE]          = unary_opcode_ir_to_asm,
     [IR_OPC_TEST]         = binary_opcode_ir_to_asm,
+
     [IR_OPC_IN]           = lib_func_ir_to_asm,
     [IR_OPC_OUT]          = lib_func_ir_to_asm,
+    
     [IR_OPC_LOCAL_LABEL]  = zeroary_opcode_ir_to_asm,
     [IR_OPC_GLOBAL_LABEL] = zeroary_opcode_ir_to_asm,
     [IR_OPC_FILDL]        = unary_opcode_ir_to_asm,

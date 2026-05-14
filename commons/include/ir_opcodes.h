@@ -20,8 +20,10 @@ enum ir_opc_t {
     IR_OPC_JE           = 12,
     IR_OPC_JNE          = 13,
     IR_OPC_TEST         = 14,
+
     IR_OPC_IN           = 15,
     IR_OPC_OUT          = 16,
+    
     IR_OPC_LOCAL_LABEL  = 17,
     IR_OPC_GLOBAL_LABEL = 18,
     IR_OPC_FILDL        = 19,
