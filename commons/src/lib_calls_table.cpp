@@ -264,8 +264,8 @@ lang_status_t solve_lib_call_requests(lang_ctx_t *ctx) {
 
         memcpy(ctx->bin_buf.data + patch_addr, &rel, 4);
 
-        // printf("Patched %s call at 0x%x -> target 0x%lx (rel = %d)\n",
-        //        func_name, patch_addr, target_addr, rel);
+        printf("Patched %s call at 0x%x -> target 0x%lx (rel = %d)\n",
+               func_name, patch_addr, target_addr, rel);
     }
 
     return LANG_SUCCESS;

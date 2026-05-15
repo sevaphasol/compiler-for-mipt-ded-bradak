@@ -78,7 +78,11 @@ lang_status_t passing_func_params_to_ir(lang_ctx_t* ctx,
                                         size_t      n_params)
 {
     ASSERT(ctx);
-    ASSERT(node);
+    
+    if (!node) {
+        // passing no args
+        return LANG_SUCCESS;
+    }
 
     node_t* cur_param        = node;
     node_t* params[n_params] = {};
