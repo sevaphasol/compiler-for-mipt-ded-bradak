@@ -1,11 +1,11 @@
-~ fdecl scan_cdecl(: var n)
-~ fdecl print_cdecl(: var n)
+~ fdecl scan(: var n)
+~ fdecl print(: var n)
 
 ~ func main()
 {
     ~ var test = 63
 
-    ~ call print_cdecl(: test)
+    ~ call print(: test)
 
     ~ return 0
 }

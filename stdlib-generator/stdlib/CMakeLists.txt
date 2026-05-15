@@ -14,7 +14,6 @@ set(EXTRACT_OBJ_DIR ${CMAKE_BINARY_DIR}/stdlib_obj)
 add_library(random_client STATIC
     global_src/std/src/io.c
     global_src/std/src/wrappers.s
-    global_src/std/src/io_old.s
 )
 
 # BE CAREFULL WITH THIS!!!!:

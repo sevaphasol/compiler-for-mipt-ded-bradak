@@ -1,7 +1,7 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
-void print_V_amd64(int num) {
+void print_V_amd64_abi_detail__(int num) {
     char buf[16] = {0};
     char *rsi = buf + 15;
     int is_negative = 0;
@@ -39,7 +39,7 @@ void print_V_amd64(int num) {
     );
 }
 
-int scan_V_amd64(void) {
+int scan_V_amd64_abi_detail__(void) {
     char buf[16] = {0};
     long bytes_read;
 
@@ -82,23 +82,4 @@ int scan_V_amd64(void) {
     }
 
     return result;
-}
-
-#define SYS_write 1
-
-
-void print_53(void) {
-    char msg[4];
-    msg[0] = '5';
-    msg[1] = '3';
-    msg[2] = '\n';
-    msg[3] = 0;
-
-    long ret;
-    __asm__ volatile (
-        "syscall"
-        : "=a"(ret)
-        : "a"(SYS_write), "D"(1), "S"(msg), "d"(3)
-        : "rcx", "r11", "memory"
-    );
 }
