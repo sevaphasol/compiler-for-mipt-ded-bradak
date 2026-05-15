@@ -134,10 +134,8 @@ lang_status_t make_binary(lang_ctx_t* ctx)
     label_table_dtor(&ctx->label_table);
     fixup_table_dtor(&ctx->fixups);
 
-    if (ctx->lib_calls_table.load_in ||
-        ctx->lib_calls_table.load_out) {
-        solve_lib_call_requests(ctx);
-    }
+    solve_lib_call_requests(ctx);
+
 
     lib_calls_table_dtor(&ctx->lib_calls_table);
     stdlib_data_dtor(&ctx->stdlib_data);

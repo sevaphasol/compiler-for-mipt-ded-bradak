@@ -39,11 +39,14 @@ lang_status_t buf_write(buffer_t* buf, const void* data, size_t data_size)
     ASSERT(buf);
     ASSERT(data);
 
-    if (buf->size + data_size >= buf->capacity) {
-        buf->data = (uint8_t*) realloc(buf->data, 2 * buf->capacity *
-                                                      sizeof(uint8_t));
-        VERIFY(!buf->data, return LANG_ERROR);
-        buf->capacity *= 2;
+    size_t needed = buf->size + data_size;
+    if (needed > buf->capacity) {
+        size_t new_cap = buf->capacity * 2;
+        if (new_cap < needed) new_cap = needed;
+        uint8_t* new_data = (uint8_t*) realloc(buf->data, new_cap);
+        if (!new_data) return LANG_ERROR;
+        buf->data = new_data;
+        buf->capacity = new_cap;
     }
 
     memcpy(buf->data + buf->size, data, data_size);

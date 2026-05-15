@@ -2,5 +2,9 @@ build/
 local/
 bin/
 logs/
+test_output/
 
 *.log
+*.out
+*.o
+

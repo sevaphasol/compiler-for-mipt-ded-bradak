@@ -390,6 +390,24 @@ lang_status_t encode_pop(lang_ctx_t*  ctx,
 
 //——————————————————————————————————————————————————————————————————————————————
 
+lang_status_t encode_lib_func(lang_ctx_t*  ctx,
+                              ir_instr_t*  ir_instr,
+                              bin_instr_t* bin_instr)
+{
+    ASSERT(ctx);
+    ASSERT(ir_instr);
+    ASSERT(bin_instr);
+
+    bin_instr->opc = X86_64_CALL_REL32_OPCODE;
+    bin_instr->info.has_imm = true;
+    bin_instr->info.imm_size = 4;
+    bin_instr->imm = 0;
+
+    return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
 lang_status_t encode_call(lang_ctx_t*  ctx,
                           ir_instr_t*  ir_instr,
                           bin_instr_t* bin_instr)
@@ -397,6 +415,15 @@ lang_status_t encode_call(lang_ctx_t*  ctx,
     ASSERT(ctx);
     ASSERT(ir_instr);
     ASSERT(bin_instr);
+
+    if (ir_instr->opd1.type == IR_OPD_STDLIB_LABEL) {
+        const char* name = ir_instr->opd1.value.global_label_name;
+        add_lib_call_request(&ctx->lib_calls_table,
+                         name,
+                         ctx->bin_buf.size + 1);
+
+        return encode_lib_func(ctx, ir_instr, bin_instr);
+    }
 
     ASSERT(ir_instr->opd1.type == IR_OPD_GLOBAL_LABEL);
 
@@ -499,50 +526,6 @@ lang_status_t encode_jne(lang_ctx_t* ctx, ir_instr_t* ir_instr, bin_instr_t* bin
     uint8_t  opc_size = 2;
 
     return encode_jumps(ctx, ir_instr, bin_instr, opc, opc_size);
-}
-
-//——————————————————————————————————————————————————————————————————————————————
-
-lang_status_t encode_lib_func(lang_ctx_t*  ctx,
-                              ir_instr_t*  ir_instr,
-                              bin_instr_t* bin_instr)
-{
-    ASSERT(ctx);
-    ASSERT(ir_instr);
-    ASSERT(bin_instr);
-
-    bin_instr->opc = X86_64_CALL_REL32_OPCODE;
-    bin_instr->info.has_imm = true;
-    bin_instr->info.imm_size = 4;
-    bin_instr->imm = 0;
-
-    return LANG_SUCCESS;
-}
-
-//——————————————————————————————————————————————————————————————————————————————
-
-lang_status_t encode_in(lang_ctx_t*  ctx,
-                        ir_instr_t*  ir_instr,
-                        bin_instr_t* bin_instr)
-{
-    add_lib_call_request(&ctx->lib_calls_table,
-                         LIB_CALL_IN,
-                         ctx->bin_buf.size + 1);
-
-    return encode_lib_func(ctx, ir_instr, bin_instr);
-}
-
-//——————————————————————————————————————————————————————————————————————————————
-
-lang_status_t encode_out(lang_ctx_t*  ctx,
-                         ir_instr_t*  ir_instr,
-                         bin_instr_t* bin_instr)
-{
-    add_lib_call_request(&ctx->lib_calls_table,
-                         LIB_CALL_OUT,
-                         ctx->bin_buf.size + 1);
-
-    return encode_lib_func(ctx, ir_instr, bin_instr);
 }
 
 //——————————————————————————————————————————————————————————————————————————————

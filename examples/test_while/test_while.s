@@ -9,27 +9,22 @@ main:
         push qword rbp
         mov rbp, rsp
         sub rsp, 8
-        push qword 5
-        pop qword [rbp - 8]
+        mov [rbp - 8], 5
         jmp .L0
 .L1:
         push qword [rbp - 8]
-        call print 
+        call print
         add rsp, 8
         push qword [rbp - 8]
-        push qword 1
-        pop qword r11
+        mov r11, 1
         pop qword r10
         sub r10, r11
-        push qword r10
-        pop qword [rbp - 8]
+        mov [rbp - 8], r10
 .L0:
-        push qword [rbp - 8]
-        pop qword rax
+        mov rax, [rbp - 8]
         test rax, rax
         jne .L1
-        push qword 0
-        pop qword rax
+        mov rax, 0
         add rsp, 8
         pop qword rbp
         ret

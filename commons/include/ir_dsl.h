@@ -13,6 +13,8 @@
 
 #define OPD_GLOBAL_LABEL(_name) \
     (ir_opd_t){.type = IR_OPD_GLOBAL_LABEL, .value = {.global_label_name  = _name}}
+#define OPD_STDLIB_LABEL(_name) \
+    (ir_opd_t){.type = IR_OPD_STDLIB_LABEL, .value = {.global_label_name  = _name}}
 #define OPD_LOCAL_LABEL(_num) \
     (ir_opd_t){.type = IR_OPD_LOCAL_LABEL,  .value = {.local_label_number = _num}}
 
@@ -40,9 +42,6 @@
 #define OP_NOP     (ir_instr_t){IR_OPC_NOP,     {}, {}}
 #define OP_RET     (ir_instr_t){IR_OPC_RET,     {}, {}}
 #define OP_SYSCALL (ir_instr_t){IR_OPC_SYSCALL, {}, {}}
-
-#define OP_IN      (ir_instr_t){IR_OPC_IN,  {}, {}}
-#define OP_OUT     (ir_instr_t){IR_OPC_OUT, {}, {}}
 
 #define OP_FILDL(_opd)  (ir_instr_t){IR_OPC_FILDL,  _opd, {}}
 #define OP_FSQRT        (ir_instr_t){IR_OPC_FSQRT,  {},   {}}

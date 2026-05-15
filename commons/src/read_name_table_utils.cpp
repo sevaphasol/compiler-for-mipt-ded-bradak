@@ -11,6 +11,15 @@
 
 //——————————————————————————————————————————————————————————————————————————————
 
+static void ast_set_parents(node_t* node, node_t* parent) {
+    if (!node) return;
+
+    node->parent = parent;
+
+    ast_set_parents(node->left,  node);
+    ast_set_parents(node->right, node);
+}
+
 lang_status_t read_input_ctx(lang_ctx_t* ctx)
 {
     ASSERT(ctx);
@@ -20,6 +29,8 @@ lang_status_t read_input_ctx(lang_ctx_t* ctx)
 
     VERIFY(read_tree(ctx, &ctx->tree),
            return LANG_ERROR);
+    
+    ast_set_parents(ctx->tree, NULL);
 
     VERIFY(graph_dump(ctx, ctx->tree, TREE),
            return LANG_ERROR);

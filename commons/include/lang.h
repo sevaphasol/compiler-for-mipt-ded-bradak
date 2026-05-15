@@ -59,11 +59,10 @@ enum operator_code_t
     RET           = 19,
     PARAM_LINKER  = 20,
     NEW_VAR       = 21,
-    NEW_FUNC      = 22,
-    IN            = 23,
-    OUT           = 24,
-    CALL          = 25,
-    HLT           = 26,
+    NEW_FUNC_DEF  = 22,
+    NEW_FUNC_DECL = 23,
+    CALL          = 24,
+    HLT           = 25,
 };
 
 //———————————————————————————————————————————————————————————————————//
@@ -92,9 +91,8 @@ lang_status_t if_to_ir                (lang_ctx_t* ctx, node_t* node);
 lang_status_t while_to_ir             (lang_ctx_t* ctx, node_t* node);
 lang_status_t new_var_to_ir           (lang_ctx_t* ctx, node_t* node);
 lang_status_t new_func_to_ir          (lang_ctx_t* ctx, node_t* node);
+lang_status_t func_decl_to_ir         (lang_ctx_t* ctx, node_t* node);
 lang_status_t return_to_ir            (lang_ctx_t* ctx, node_t* node);
-lang_status_t in_to_ir                (lang_ctx_t* ctx, node_t* node);
-lang_status_t out_to_ir               (lang_ctx_t* ctx, node_t* node);
 lang_status_t call_to_ir              (lang_ctx_t* ctx, node_t* node);
 lang_status_t exit_to_ir              (lang_ctx_t* ctx, node_t* node);
 lang_status_t var_to_ir               (lang_ctx_t* ctx, node_t* node);
@@ -129,9 +127,8 @@ const operator_t OperatorsTable[] =
     {RET,           STR_AND_LEN("return"),    nullptr,       0,          &return_to_ir           , nullptr},
     {PARAM_LINKER,  STR_AND_LEN(":"),         nullptr,       2,          nullptr                 , nullptr},
     {NEW_VAR,       STR_AND_LEN("var"),       nullptr,       2,          &new_var_to_ir          , nullptr},
-    {NEW_FUNC,      STR_AND_LEN("func"),      nullptr,       2,          &new_func_to_ir         , nullptr},
-    {IN,            STR_AND_LEN("scan"),      "in",          1,          &in_to_ir               , nullptr},
-    {OUT,           STR_AND_LEN("print"),     "out",         1,          &out_to_ir              , nullptr},
+    {NEW_FUNC_DEF,  STR_AND_LEN("func"),      nullptr,       2,          &new_func_to_ir         , nullptr},
+    {NEW_FUNC_DECL, STR_AND_LEN("fdecl"),     nullptr,       2,          &func_decl_to_ir        , nullptr},
     {CALL,          STR_AND_LEN("call"),      "call",        0,          &call_to_ir             , nullptr},
     {HLT,           STR_AND_LEN("exit"),      nullptr,       0,          &exit_to_ir             , nullptr}
 };
@@ -144,9 +141,10 @@ const int nOperators = sizeof(OperatorsTable) / sizeof(operator_t);
 
 enum identifier_type_t
 {
-    UNKNOWN = 0,
-    VAR     = 1,
-    FUNC    = 2,
+    UNKNOWN     = 0,
+    VAR         = 1,
+    FUNC_DEF    = 2,
+    FUNC_DECL   = 3,
 };
 
 //———————————————————————————————————————————————————————————————————//
@@ -160,6 +158,7 @@ struct identifier_t
     bool              is_inited;
     int               addr;
     bool              is_global;
+    bool              is_stdlib; 
 };
 
 //———————————————————————————————————————————————————————————————————//
@@ -192,6 +191,7 @@ struct node_t
     size_t       line_number;
     node_t*      left;
     node_t*      right;
+    node_t*      parent;
 };
 
 //———————————————————————————————————————————————————————————————————//
