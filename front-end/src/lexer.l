@@ -8,11 +8,21 @@
 extern lang_ctx_t* ctx;
 
 static int yycolumn = 1;
-#define YY_USER_ACTION yylloc.first_line = yylineno; \
-                       yylloc.last_line = yylineno; \
-                       yylloc.first_column = yycolumn; \
-                       yycolumn += yyleng; \
-                       yylloc.last_column = yycolumn;
+static int prev_yylineno = 1;
+
+#define YY_USER_ACTION \
+    yylloc.first_line = prev_yylineno; \
+    yylloc.first_column = yycolumn; \
+    for (int i = 0; yytext[i] != '\0'; i++) { \
+        if (yytext[i] == '\n') { \
+            yycolumn = 1; \
+        } else { \
+            yycolumn++; \
+        } \
+    } \
+    yylloc.last_line = yylineno; \
+    yylloc.last_column = yycolumn; \
+    prev_yylineno = yylineno;
 %}
 
 %option noyywrap nounput noinput yylineno
@@ -28,14 +38,15 @@ newline     [\n]
 
 %%
 
-{whitespace}+    { yycolumn += yyleng; }
-{newline}+       { yylineno += yyleng; yycolumn = 1; }
+{whitespace}+    { }
+{newline}+       { }
 
-"//".* { yycolumn += yyleng; }
+"//".*           { }
 
-"/*"             { BEGIN(COMMENT); yycolumn += yyleng; }
-<COMMENT>"*/"    { BEGIN(INITIAL); yycolumn += yyleng; }
-<COMMENT>.|\n    { if (*yytext == '\n') { yylineno++; yycolumn = 1; } else yycolumn++; }
+"/*"             { BEGIN(COMMENT); }
+<COMMENT>"*/"    { BEGIN(INITIAL); }
+<COMMENT>.       { }
+<COMMENT>\n      { }
 
 "~"              { return TK_TILDE; }
 ":"              { return TK_COLON; }
