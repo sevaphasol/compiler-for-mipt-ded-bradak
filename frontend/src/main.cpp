@@ -40,6 +40,6 @@ int main(int argc, const char* argv[])
     graph_dump(&ctx_local, ctx_local.tree, TREE);
 
     lang_ctx_dtor(&ctx_local);
-    fprintf(stderr, _PURPLE("front-end:  ") _GREEN("success\n"));
+    fprintf(stderr, _PURPLE("frontend:  ") _GREEN("success\n"));
     return EXIT_SUCCESS;
 }

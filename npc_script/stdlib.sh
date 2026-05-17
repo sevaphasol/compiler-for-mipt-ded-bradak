@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-rm -f ./back-end/lib/stdlib.bin
+rm -f ./backend/lib/stdlib.bin
 rm -f ./local/test/test.out
 
 pushd stdlib
 echo "Running build_stdlib.sh"
 ./build_stdlib.sh   # output visible
-mv stdlib.bin ../back-end/lib/stdlib.bin
+mv stdlib.bin ../backend/lib/stdlib.bin
 popd
 
 # make

@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
     VERIFY(backend_lang_ctx_dtor(&ctx),
            return EXIT_FAILURE);
 
-    fprintf(stderr, _PURPLE("back-end:   ") _GREEN("success\n"));
+    fprintf(stderr, _PURPLE("backend:   ") _GREEN("success\n"));
 
     return EXIT_SUCCESS;
 }

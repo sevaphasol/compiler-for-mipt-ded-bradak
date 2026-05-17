@@ -243,7 +243,7 @@ lang_status_t solve_lib_call_requests(lang_ctx_t *ctx) {
     ASSERT(ctx);
 
     if (ctx->stdlib_data.num_funcs == 0) {
-        VERIFY(stdlib_data_load(&ctx->stdlib_data, "./back-end/lib/stdlib.bin"),
+        VERIFY(stdlib_data_load(&ctx->stdlib_data, "./backend/lib/stdlib.bin"),
                return LANG_ERROR);
         VERIFY(stdlib_data_append_and_free(&ctx->stdlib_data, &ctx->bin_buf),
                return LANG_ERROR);

@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
     VERIFY(middle_end_lang_ctx_dtor(&ctx),
            return EXIT_FAILURE);
 
-    fprintf(stderr, _PURPLE("middle-end: ") _GREEN("success\n"));
+    fprintf(stderr, _PURPLE("midend: ") _GREEN("success\n"));
 
     return EXIT_SUCCESS;
 }

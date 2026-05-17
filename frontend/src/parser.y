@@ -54,9 +54,8 @@ static void ast_set_parents(node_t* node, node_t* parent);
 %type <node> param_list param param_rest
 %type <node> body statement_list statement
 %type <node> assignment if_stmt while_stmt return_stmt
-%type <node> call_stmt
 %type <node> expression additive_expr multiplicative_expr unary_expr primary_expr
-%type <node> argument_list
+%type <node> argument_list nonempty_argument_list
 
 %%
 
@@ -136,7 +135,7 @@ function_def
               identifier_t* id = &ctx->name_table.ids[existing];
               if (id->type == FUNC_DEF) {
                   fprintf(stderr, "Error: Redefinition of function '%s'\n", $2);
-              } else if (id->type == NEW_FUNC_DECL) {
+              } else if (id->type == FUNC_DECL) {
                   fprintf(stderr, "Error: Function '%s' was already declared; definition not allowed\n", $2);
               } else {
                   fprintf(stderr, "Error: '%s' is already used as a variable\n", $2);
@@ -257,7 +256,6 @@ statement
     | TK_TILDE if_stmt                                  { $$ = $2; }
     | TK_TILDE while_stmt                               { $$ = $2; }
     | TK_TILDE return_stmt                              { $$ = $2; }
-    | TK_TILDE call_stmt                                { $$ = $2; }
     | TK_TILDE expression                               { $$ = $2; }
     ;
 
@@ -303,38 +301,24 @@ return_stmt
     | TK_RETURN             { $$ = _OPERATOR(RET); $$->left = NULL; }
     ;
 
-call_stmt
-    : TK_CALL TK_IDENTIFIER TK_L_ROUND argument_list TK_R_ROUND
-        {
-            size_t idx = get_identifier_index($2);
-            if (check_var(ctx, &idx, ON_INITED) != LANG_SUCCESS) {
-                fprintf(stderr, "Error: Function '%s' not declared\n", $2);
-                YYERROR;
-            }
-            node_t* id = _IDENTIFIER(idx);
-            // Symmetry: Arguments go into IDENTIFIER->left
-            id->left = ($4) ? reverse_statement_list($4) : NULL;
-            node_t* call = _OPERATOR(CALL);
-            call->left = id;
-            $$ = call;
-            free($2);
-        }
-    ;
-
 argument_list
     : /* empty */ { $$ = NULL; }
-    | argument_list TK_COLON expression
-        {
-            node_t* linker = _OPERATOR(PARAM_LINKER);
-            linker->left = $3;
-            linker->right = $1;
-            $$ = linker;
-        }
-    | TK_COLON expression
+    | nonempty_argument_list { $$ = $1; }
+    ;
+
+nonempty_argument_list
+    : TK_COLON expression
         {
             node_t* linker = _OPERATOR(PARAM_LINKER);
             linker->left = $2;
             linker->right = NULL;
+            $$ = linker;
+        }
+    | nonempty_argument_list TK_COLON expression
+        {
+            node_t* linker = _OPERATOR(PARAM_LINKER);
+            linker->left = $3;
+            linker->right = $1;
             $$ = linker;
         }
     ;
@@ -441,12 +425,12 @@ static lang_status_t check_var(lang_ctx_t* ctx, size_t* ind, int mode) {
 
 static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t* node, bool is_global) {
     size_t name_index = node->value.id_index;
-    const char* name = ctx->name_table.names[name_index].name;
+    char* name = ctx->name_table.names[name_index].name;
     size_t len = ctx->name_table.names[name_index].len;
 
     size_t new_id = ctx->name_table.n_ids;
     ctx->name_table.ids[new_id].type      = type;
-    ctx->name_table.ids[new_id].name      = (char*)name;   /* cast to match struct field */
+    ctx->name_table.ids[new_id].name      = name;
     ctx->name_table.ids[new_id].len       = len;
     ctx->name_table.ids[new_id].n_params  = 0;
     ctx->name_table.ids[new_id].is_inited = true;

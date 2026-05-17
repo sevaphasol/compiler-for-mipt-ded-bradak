@@ -18,9 +18,9 @@ MIDDLEFILE="${OUTFILE%.*}.middle"
 # TMPFILE_FRONT=$(mktemp frontend_tmp.XXXXXX)
 # TMPFILE_MIDDLE=$(mktemp middleend_tmp.XXXXXX)
 
-front-end/build/frontend "$SRCFILE" "$FRONTFILE"
-middle-end/build/middle-end -i "$FRONTFILE" -o "$MIDDLEFILE"
-back-end/build/backend -i "$MIDDLEFILE" -o "$OUTFILE" -S "$ASMFILE"
+build/bin/frontend "$SRCFILE" "$FRONTFILE"
+build/bin/midend -i "$FRONTFILE" -o "$MIDDLEFILE"
+build/bin/backend -i "$MIDDLEFILE" -o "$OUTFILE" -S "$ASMFILE"
 
 # rm -f "$TMPFILE_FRONT"
 # rm -f "$TMPFILE_MIDDLE"
