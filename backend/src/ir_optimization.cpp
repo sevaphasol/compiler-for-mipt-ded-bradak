@@ -74,10 +74,9 @@ lang_status_t replace_push_pop_with_mov(ir_node_t* push_node,
     ir_opd_t src = push_node->instr.opd1;
     ir_opd_t dst = pop_node->instr.opd1;
 
-    cut_node(push_node);
+    cut_node(pop_node);
 
-    ir_instr_t* mov = &pop_node->instr;
-
+    ir_instr_t* mov = &push_node->instr;
     mov->opc  = IR_OPC_MOV;
     mov->opd1 = dst;
     mov->opd2 = src;

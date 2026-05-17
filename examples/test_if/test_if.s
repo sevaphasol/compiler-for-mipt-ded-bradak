@@ -13,7 +13,11 @@ main:
         push qword rbp
         mov rbp, rsp
         sub rsp, 0
-        mov rax, 0
+        push qword 1
+        push qword 0
+        call smaller_cdecl
+        add rsp, 16
+        mov rax, rax
         test rax, rax
         je .L0
         push qword 0

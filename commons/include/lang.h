@@ -254,6 +254,7 @@ struct lang_ctx_t
     size_t            n_labels;
     size_t            global_data_size;
     size_t            cur_stack_frame_size;
+    size_t            cur_func_epilogue_label;
     bool              emitting_global_init;
 
     ir_node_t*        ir_list;

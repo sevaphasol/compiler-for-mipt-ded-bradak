@@ -84,3 +84,7 @@ main:
         add rsp, 24
         pop qword rbp
         ret
+        mov rax, 0
+        add rsp, 24
+        pop qword rbp
+        ret

@@ -1,8 +1,9 @@
 ~ fdecl print_num_cdecl(: var val)
+~ fdecl smaller_cdecl(: var lhs : var rhs)
 
 ~ func main()
 {
-    ~ if (0 < 1) {
+    ~ if (call smaller_cdecl(: 0 : 1) ) {
         ~ call print_num_cdecl(: 0)
         ~ return 0
     }

@@ -441,6 +441,9 @@ lang_status_t new_func_to_ir(lang_ctx_t* ctx,
     EMIT(OP_PUSH(OPD_REG(REG_RBP)));
     EMIT(OP_MOV(OPD_REG(REG_RBP), OPD_REG(REG_RSP)));
 
+    size_t prev_epilogue_label = ctx->cur_func_epilogue_label;
+    ctx->cur_func_epilogue_label = ctx->n_labels++;
+
     size_t sub_rsp_position = ctx->ir_buf.size;
 
     ctx->ir_buf.size += sizeof(ir_instr_t);
@@ -458,9 +461,15 @@ lang_status_t new_func_to_ir(lang_ctx_t* ctx,
     EMIT(OP_SUB(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
 
     ctx->ir_buf.size = cur_position;
+    EMIT(OP_MOV(OPD_REG(REG_RAX), OPD_IMM(0)));
+    EMIT(OP_LOCAL_LABEL(ctx->cur_func_epilogue_label));
+    EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
+    EMIT(OP_POP(OPD_REG(REG_RBP)));
+    EMIT(OP_RET);
 
     ctx->cur_stack_frame_size = 0;
     ctx->level    = 0;
+    ctx->cur_func_epilogue_label = prev_epilogue_label;
 
     return LANG_SUCCESS;
 }
@@ -491,13 +500,11 @@ lang_status_t return_to_ir(lang_ctx_t* ctx, node_t* node)
     if (ret_value) {
         node_to_ir(ctx, ret_value);
         EMIT(OP_POP(OPD_REG(REG_RAX)));
+    } else {
+        EMIT(OP_MOV(OPD_REG(REG_RAX), OPD_IMM(0)));
     }
 
-    int32_t allocated_memory = ctx->cur_stack_frame_size;
-
-    EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
-    EMIT(OP_POP(OPD_REG(REG_RBP)));
-    EMIT(OP_RET);
+    EMIT(OP_JMP(OPD_LOCAL_LABEL(ctx->cur_func_epilogue_label)));
 
     return LANG_SUCCESS;
 }

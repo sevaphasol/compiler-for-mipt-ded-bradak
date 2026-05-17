@@ -27,3 +27,7 @@ main:
         add rsp, 16
         pop qword rbp
         ret
+        mov rax, 0
+        add rsp, 16
+        pop qword rbp
+        ret

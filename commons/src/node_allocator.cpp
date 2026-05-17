@@ -28,7 +28,7 @@ node_allocator_status_t node_allocator_ctor(node_allocator_t* allocator,
     //-------------------------------------------------------------------//
 
     allocator->array_len = array_len;
-    allocator->big_array[0] = (node_t*) calloc(array_len, sizeof(node_t*));
+    allocator->big_array[0] = (node_t*) calloc(array_len, sizeof(node_t));
     VERIFY(!allocator->big_array[0],
             return NODE_ALLOCATOR_STD_CALLOC_ERROR);
 
@@ -118,9 +118,13 @@ node_allocator_status_t big_array_realloc(node_allocator_t* allocator)
 
     //-------------------------------------------------------------------//
 
-    VERIFY(!realloc(allocator->big_array,
-                    ++allocator->n_arrays * sizeof(node_t*)),
+    node_t** new_big_array = (node_t**) realloc(allocator->big_array,
+                                                (allocator->n_arrays + 1) * sizeof(node_t*));
+    VERIFY(!new_big_array,
            return BIG_ARRAY_REALLOC_ERROR);
+
+    allocator->big_array = new_big_array;
+    allocator->n_arrays++;
 
     //-------------------------------------------------------------------//
 
@@ -136,7 +140,7 @@ node_allocator_status_t arrays_calloc(node_allocator_t* allocator)
     //-------------------------------------------------------------------//
 
     allocator->big_array[allocator->n_arrays - 1] = (node_t*)
-         calloc(allocator->array_len, sizeof(node_t*));
+         calloc(allocator->array_len, sizeof(node_t));
 
     VERIFY(!allocator->big_array[allocator->n_arrays - 1],
         return NODE_ALLOCATOR_STD_CALLOC_ERROR);
