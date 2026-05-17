@@ -1,0 +1,8 @@
+~ fdecl launch_localhost_client_3000()
+
+~ func main()
+{
+    ~ call launch_localhost_client_3000()
+
+    ~ return 0
+}

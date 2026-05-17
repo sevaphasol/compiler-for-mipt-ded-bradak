@@ -37,8 +37,8 @@ void build_exe_phdr(Elf64_Phdr* phdr, size_t code_size)
     /* p_memsz - the size of the loaded segment it occupies in the memory */
     phdr->p_memsz  = code_size;
 
-    /* Executable must have rights on read and execute. */
-    phdr->p_flags  = PF_R | PF_X;
+    /* Stdlib code is appended together with its writable data. */
+    phdr->p_flags  = PF_R | PF_W | PF_X;
 
     /* PAGE_SIZE = 0x1000 — default alignment in x86-64. */
     phdr->p_align  = PAGE_SIZE;
