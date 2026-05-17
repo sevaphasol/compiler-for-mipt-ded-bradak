@@ -137,7 +137,9 @@ lang_status_t call_to_ir(lang_ctx_t* ctx, node_t* node)
         int32_t allocated_memory = VAR_SIZE * func_id.n_params;
 
         EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
-        EMIT(OP_PUSH(OPD_REG(REG_RAX)));
+        if (!call->parent || call->parent->value.operator_code != STATEMENT) {
+            EMIT(OP_PUSH(OPD_REG(REG_RAX)));
+        }
         return LANG_SUCCESS;
     } 
     
