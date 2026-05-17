@@ -31,6 +31,7 @@ enum value_type_t
     OPERATOR   = 1,
     NUMBER     = 2,
     IDENTIFIER = 3,
+    STRING     = 4,
 };
 
 //———————————————————————————————————————————————————————————————————//
@@ -180,6 +181,7 @@ union value_t
     operator_code_t   operator_code;
     size_t            id_index;
     number_t          number;
+    char*             string;
 };
 
 //———————————————————————————————————————————————————————————————————//
@@ -254,6 +256,7 @@ struct lang_ctx_t
     label_table_t     label_table;
     fixup_table_t     fixups;
     fixup_table_t     global_data_fixups;
+    fixup_table_t     string_fixups;
     
     lib_calls_table_t lib_calls_table;
     stdlib_data_t     stdlib_data;

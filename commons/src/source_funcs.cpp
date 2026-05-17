@@ -35,6 +35,12 @@ lang_status_t src_node(lang_ctx_t* ctx, node_t* node)
             break;
         }
 
+        case STRING:
+        {
+            _PUT("\"%s\"", node->value.string);
+            break;
+        }
+
         case IDENTIFIER:
         {
             _PUT("%s", _ID(node).name);

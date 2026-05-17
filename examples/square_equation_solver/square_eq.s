@@ -2,12 +2,17 @@ section .text
 global _start
 
 _start:
+        call __global_init
         call main
+        mov rdi, rax
         mov rax, 60
         syscall
+__global_init:
+        ret
 solve_linear:
         push qword rbp
         mov rbp, rsp
+        sub rsp, 0
         mov rax, [rbp + 16]
         test rax, rax
         je .L0
@@ -21,10 +26,11 @@ solve_linear:
         cqo
         idiv r10
         push qword rax
-        call print 
+        call print_num_cdecl
         add rsp, 8
 .L0:
         mov rax, 0
+        add rsp, 0
         pop qword rbp
         ret
 solve_square_eq:
@@ -94,10 +100,10 @@ solve_square_eq:
         idiv r10
         mov [rbp - 24], rax
         push qword [rbp - 16]
-        call print 
+        call print_num_cdecl
         add rsp, 8
         push qword [rbp - 24]
-        call print 
+        call print_num_cdecl
         add rsp, 8
         mov rax, 0
         add rsp, 24
@@ -119,11 +125,14 @@ main:
         mov [rbp - 8], 0
         mov [rbp - 16], 0
         mov [rbp - 24], 0
-        call scan 
+        call scan_num_cdecl
+        add rsp, 0
         mov [rbp - 8], rax
-        call scan 
+        call scan_num_cdecl
+        add rsp, 0
         mov [rbp - 16], rax
-        call scan 
+        call scan_num_cdecl
+        add rsp, 0
         mov [rbp - 24], rax
         push qword [rbp - 24]
         push qword [rbp - 16]

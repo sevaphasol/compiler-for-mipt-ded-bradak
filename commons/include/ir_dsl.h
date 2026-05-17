@@ -15,6 +15,8 @@
 
 #define OPD_GLOBAL_LABEL(_name) \
     (ir_opd_t){.type = IR_OPD_GLOBAL_LABEL, .value = {.global_label_name  = _name}}
+#define OPD_STRING(_str) \
+    (ir_opd_t){.type = IR_OPD_STRING_LITERAL, .value = {.string_literal = _str}}
 #define OPD_STDLIB_LABEL(_name) \
     (ir_opd_t){.type = IR_OPD_STDLIB_LABEL, .value = {.global_label_name  = _name}}
 #define OPD_LOCAL_LABEL(_num) \
@@ -29,6 +31,7 @@
 #define OP_MUL(_opd1, _opd2)  (ir_instr_t){IR_OPC_MUL,  _opd1, _opd2}
 #define OP_DIV(_opd1, _opd2)  (ir_instr_t){IR_OPC_DIV,  _opd1, _opd2}
 #define OP_MOV(_opd1, _opd2)  (ir_instr_t){IR_OPC_MOV,  _opd1, _opd2}
+#define OP_LEA(_opd1, _opd2)  (ir_instr_t){IR_OPC_LEA,  _opd1, _opd2}
 #define OP_TEST(_opd1, _opd2) (ir_instr_t){IR_OPC_TEST, _opd1, _opd2}
 
 #define OP_PUSH(_opd) (ir_instr_t){IR_OPC_PUSH, _opd, {}}

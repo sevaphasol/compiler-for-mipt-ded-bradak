@@ -1,0 +1,19 @@
+~ fdecl scan_str_cdecl()
+~ fdecl str_cmp(: var lhs : var rhs)
+~ fdecl print_num_cdecl(: var val)
+
+~ var expected = "belominon"
+
+~ func main()
+{
+    ~ var input = call scan_str_cdecl()
+    ~ var cmp = call str_cmp(: input : expected)
+
+    ~ if (cmp) {
+        ~ call print_num_cdecl(: 0)
+        ~ return 0
+    }
+
+    ~ call print_num_cdecl(: 1)
+    ~ return 0
+}

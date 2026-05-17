@@ -169,6 +169,42 @@ lang_status_t encode_mov(lang_ctx_t*  ctx,
 
 //——————————————————————————————————————————————————————————————————————————————
 
+lang_status_t encode_lea(lang_ctx_t*  ctx,
+                         ir_instr_t*  ir_instr,
+                         bin_instr_t* bin_instr)
+{
+    ASSERT(ctx);
+    ASSERT(ir_instr);
+    ASSERT(bin_instr);
+
+    ASSERT(ir_instr->opd1.type == IR_OPD_REGISTER);
+    ASSERT(ir_instr->opd2.type == IR_OPD_STRING_LITERAL);
+
+    reg_t dst = ir_instr->opd1.value.reg;
+
+    bin_instr->rex = build_rex(reg_expand(dst), REX_B_UNUSED);
+    bin_instr->info.has_rex = true;
+
+    bin_instr->opc = 0x8d;
+    bin_instr->info.opcode_size = 1;
+
+    bin_instr->modrm = build_modrm(X86_64_MOD_M_NO_DISP, trim_reg(dst), 5);
+    bin_instr->info.has_modrm = true;
+
+    bin_instr->info.has_disp = true;
+    bin_instr->info.disp_size = 4;
+    bin_instr->disp = 0;
+
+    add_fixup(&ctx->string_fixups,
+              ir_instr->opd2.value.string_literal,
+              0,
+              (uint32_t) (ctx->bin_buf.size + 3));
+
+    return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
 lang_status_t encode_test(lang_ctx_t*  ctx,
                           ir_instr_t*  ir_instr,
                           bin_instr_t* bin_instr)

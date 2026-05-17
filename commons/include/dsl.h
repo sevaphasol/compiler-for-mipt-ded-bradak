@@ -202,6 +202,12 @@
                                      ctx->cur_line,                   \
                                      nullptr, nullptr)                \
 
+#define _STRING(_str)      node_ctor(ctx->node_allocator,             \
+                                     STRING,                          \
+                                     {.string = (_str)},              \
+                                     ctx->cur_line,                   \
+                                     nullptr, nullptr)                \
+
 //——————————————————————————————————————————————————————————————————————————————
 
 #endif

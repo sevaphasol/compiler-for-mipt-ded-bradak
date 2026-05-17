@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <assert.h>
 #include "lang.h"
 #include "custom_assert.h"
 #include "graph_dump.h"
@@ -100,13 +101,13 @@ lang_status_t read_tree(lang_ctx_t* ctx, node_t** node)
 
     int nchars = 0;
     int type   = 0;
-    int val    = 0;
 
-    sscanf(ctx->code, "%*[^0-9] %d %d%n", &type, &val, &nchars);
+    sscanf(ctx->code, " { %d%n", &type, &nchars);
+    ctx->code += nchars;
 
     value_t node_value = {};
 
-    if(put_node_value(type, val ,&node_value)) {
+    if(put_node_value(ctx, type, &node_value)) {
         return LANG_PUT_NODE_VALUE_ERROR;
     }
 
@@ -116,8 +117,6 @@ lang_status_t read_tree(lang_ctx_t* ctx, node_t** node)
                       0,
                       nullptr,
                       nullptr);
-
-    ctx->code += nchars;
 
     if (read_tree(ctx, &(*node)->left)) {
         return LANG_READ_LEFT_NODE_ERROR;
@@ -139,21 +138,65 @@ lang_status_t read_tree(lang_ctx_t* ctx, node_t** node)
 
 //——————————————————————————————————————————————————————————————————————————————
 
-lang_status_t put_node_value(int type, int val, value_t* node_value)
+lang_status_t put_integer_node_value(lang_ctx_t* ctx, int* val)
 {
+	int nchars = 0;
+	sscanf(ctx->code, " %d%n", val, &nchars);
+	ctx->code += nchars;
+	return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+lang_status_t put_string_node_value(lang_ctx_t* ctx, char** string)
+{
+	assert(string);
+
+	size_t len = 0;
+	int nchars = 0;
+	sscanf(ctx->code, " %ld%n", &len, &nchars);
+	ctx->code += nchars;
+
+	while (isspace(*ctx->code)) {
+		ctx->code++;
+	}
+
+	*string = (char*) calloc(len + 1, sizeof(char));
+	VERIFY(!*string, return LANG_STD_ALLOCATE_ERROR);
+	memcpy(*string, ctx->code, len);
+	(*string)[len] = '\0';
+	ctx->code += len;
+	return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+lang_status_t put_node_value(lang_ctx_t* ctx, int type, value_t* node_value)
+{
+    ASSERT(ctx);
     ASSERT(node_value);
 
     switch(type) {
         case OPERATOR: {
-            node_value->operator_code = (operator_code_t) val;
+			int val = 0;
+			put_integer_node_value(ctx, &val );
+			node_value->operator_code = (operator_code_t)val;
             break;
         }
         case IDENTIFIER: {
-            node_value->id_index = val;
+			int val = 0;
+			put_integer_node_value(ctx,&val );
+			node_value->id_index = (size_t)val;
             break;
         }
         case NUMBER: {
-            node_value->number = (number_t) val;
+			int val = 0;
+			put_integer_node_value(ctx,&val );
+			node_value->number = val;
+            break;
+        }
+        case STRING: {
+			put_string_node_value(ctx, &node_value->string);
             break;
         }
         default: {
@@ -184,6 +227,10 @@ lang_status_t print_node_value(FILE* fp, node_t* node)
         }
         case NUMBER: {
             fprintf(fp, "%d ", node->value.number);
+            break;
+        }
+        case STRING: {
+            fprintf(fp, "%ld %s ", strlen(node->value.string), node->value.string);
             break;
         }
         default: {

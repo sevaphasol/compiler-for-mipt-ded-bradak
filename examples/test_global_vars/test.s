@@ -22,10 +22,10 @@ print_global_var:
         mov rbp, rsp
         sub rsp, 0
         push qword [rel __global_data + 16]
-        call print
+        call print_num_cdecl
         add rsp, 8
         push qword [rbp + 16]
-        call print
+        call print_num_cdecl
         add rsp, 8
         mov rax, 0
         add rsp, 0
@@ -36,7 +36,7 @@ main:
         mov rbp, rsp
         sub rsp, 0
         push qword [rel __global_data + 8]
-        call print
+        call print_num_cdecl
         add rsp, 8
         push qword [rel __global_data + 24]
         call print_global_var

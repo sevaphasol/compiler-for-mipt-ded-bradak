@@ -47,6 +47,7 @@ static void ast_set_parents(node_t* node, node_t* parent);
 %token TK_L_ROUND TK_R_ROUND TK_L_CURLY TK_R_CURLY
 %token <num> TK_NUMBER
 %token <str> TK_IDENTIFIER
+%token <str> TK_STRING
 %token TK_ERROR
 
 %type <node> program top_level_list top_level_decl function_def function_decl var_decl 
@@ -366,6 +367,7 @@ unary_expr
 
 primary_expr
     : TK_NUMBER   { $$ = _NUMBER($1); }
+    | TK_STRING   { $$ = _STRING($1); }
     | TK_IDENTIFIER
         {
             size_t idx = get_identifier_index($1);

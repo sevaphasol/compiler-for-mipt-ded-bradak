@@ -30,6 +30,7 @@ static int prev_yylineno = 1;
 digit       [0-9]
 number      {digit}+
 identifier  [a-zA-Z_][a-zA-Z_0-9]*
+string      \"[^\"\n]*\"
 
 whitespace  [ \t\r]
 newline     [\n]
@@ -74,6 +75,13 @@ newline     [\n]
 {number}         { 
     yylval.num = atoi(yytext); 
     return TK_NUMBER; 
+}
+{string}         {
+    size_t len = strlen(yytext);
+    yylval.str = (char*) calloc(len - 1, sizeof(char));
+    memcpy(yylval.str, yytext + 1, len - 2);
+    yylval.str[len - 2] = '\0';
+    return TK_STRING;
 }
 {identifier}     { 
     yylval.str = strdup(yytext); 

@@ -62,6 +62,10 @@ lang_status_t node_to_ir(lang_ctx_t* ctx,
         case NUMBER:
             EMIT(OP_PUSH(OPD_IMM(node->value.number)));
             break;
+        case STRING:
+            EMIT(OP_LEA(OPD_REG(REG_RAX), OPD_STRING(node->value.string)));
+            EMIT(OP_PUSH(OPD_REG(REG_RAX)));
+            break;
         default:
             return LANG_ERROR;
     }

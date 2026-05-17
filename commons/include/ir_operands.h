@@ -17,6 +17,7 @@ enum ir_opd_type_t {
     IR_OPD_GLOBAL_LABEL = 5,
     IR_OPD_LOCAL_LABEL  = 6,
     IR_OPD_GLOBAL_MEMORY = 7,
+    IR_OPD_STRING_LITERAL = 8,
 };
 
 //——————————————————————————————————————————————————————————————————————————————
@@ -26,6 +27,7 @@ union ir_opd_value_t {
     int32_t     offset;
     int32_t     imm;
     const char* global_label_name;
+    const char* string_literal;
     size_t      local_label_number;
 };
 

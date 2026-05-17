@@ -24,6 +24,7 @@ static tree_dump_status_t make_elem     (lang_ctx_t*     ctx,
 
 static tree_dump_status_t create_png    (const char* dot_file_name,
                                          const char* png_file_name);
+static void dot_print_escaped           (FILE* file, const char* str);
 
 //——————————————————————————————————————————————————————————————————————————————
 
@@ -38,11 +39,12 @@ void make_dot_elem_str(FILE*       file,
 
     fprintf(file, "elem%p["
                   "shape=\"Mrecord\", "
-                  "label= \"{%s | val = %s}\""
-                  "];\n",
-                  elem_number,
-                  label,
-                  str);
+                  "label= \"{", elem_number);
+    dot_print_escaped(file, label);
+    fprintf(file, " | val = ");
+    dot_print_escaped(file, str);
+    fprintf(file, "}\""
+                  "];\n");
 }
 
 //——————————————————————————————————————————————————————————————————————————————
@@ -102,6 +104,16 @@ tree_dump_status_t make_dot_ir_opd(FILE* file, ir_opd_t* opd)
         case IR_OPD_GLOBAL_LABEL: {
             make_dot_elem_str   (file, opd, "GLOBAL LABEL",
                                  opd->value.global_label_name);
+            break;
+        }
+        case IR_OPD_GLOBAL_MEMORY: {
+            make_dot_elem_number(file, opd, "GLOBAL MEMORY",
+                                 opd->value.offset);
+            break;
+        }
+        case IR_OPD_STRING_LITERAL: {
+            make_dot_elem_str(file, opd, "STRING LITERAL",
+                              opd->value.string_literal);
             break;
         }
         case IR_OPD_LOCAL_LABEL: {
@@ -256,13 +268,14 @@ tree_dump_status_t make_dot_ast_id(FILE*       file,
 {
     fprintf(file, "elem%p["
                    "shape=\"Mrecord\", "
-                   "label= \"{%s | type = %s | name = %s | operator_code = %ld}\""
-                   "];\n",
-                   elem_number,
-                   type,
-                   label,
-                   name,
-                   number);
+                   "label= \"{", elem_number);
+    dot_print_escaped(file, type);
+    fprintf(file, " | type = ");
+    dot_print_escaped(file, label);
+    fprintf(file, " | name = ");
+    dot_print_escaped(file, name);
+    fprintf(file, " | operator_code = %ld}\""
+                  "];\n", number);
 
     return TREE_DUMP_SUCCESS;
 }
@@ -277,12 +290,12 @@ tree_dump_status_t make_dot_ast_operator(FILE*       file,
 {
     fprintf(file, "elem%p["
                    "shape=\"Mrecord\", "
-                   "label= \"{%s | name = %s | operator_code = %ld}\""
-                   "];\n",
-                   elem_number,
-                   label,
-                   name,
-                   number);
+                   "label= \"{", elem_number);
+    dot_print_escaped(file, label);
+    fprintf(file, " | name = ");
+    dot_print_escaped(file, name ? name : "null");
+    fprintf(file, " | operator_code = %ld}\""
+                  "];\n", number);
 
     return TREE_DUMP_SUCCESS;
 }
@@ -298,6 +311,10 @@ tree_dump_status_t make_elem(lang_ctx_t* ctx, node_t* node, FILE* file)
     switch(node->value_type) {
         case NUMBER: {
             make_dot_elem_number(file, node, "NUMBER", node->value.number);
+            break;
+        }
+        case STRING: {
+            make_dot_elem_str(file, node, "STRING", node->value.string);
             break;
         }
         case IDENTIFIER: {
@@ -370,6 +387,26 @@ tree_dump_status_t create_png(const char* dot_file_name,
            return TREE_DUMP_SYSTEM_COMMAND_ERROR);
 
     return TREE_DUMP_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+static void dot_print_escaped(FILE* file, const char* str)
+{
+    ASSERT(file);
+
+    if (!str) {
+        fputs("null", file);
+        return;
+    }
+
+    for (const char* cur = str; *cur; cur++) {
+        if (*cur == '"' || *cur == '\\' || *cur == '{' || *cur == '}' ||
+            *cur == '|' || *cur == '<' || *cur == '>' || *cur == ':') {
+            fputc('\\', file);
+        }
+        fputc(*cur, file);
+    }
 }
 
 //——————————————————————————————————————————————————————————————————————————————

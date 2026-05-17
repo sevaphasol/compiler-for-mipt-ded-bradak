@@ -31,7 +31,8 @@ static lang_status_t compile    (lang_ctx_t* ctx);
 static lang_status_t make_ir    (lang_ctx_t* ctx);
 static lang_status_t make_asm   (lang_ctx_t* ctx);
 static lang_status_t make_binary(lang_ctx_t* ctx);
-static lang_status_t append_global_data_and_patch_refs(lang_ctx_t* ctx);
+static lang_status_t fixup_global_data(lang_ctx_t* ctx);
+static lang_status_t fixup_strings    (lang_ctx_t* ctx);
 
 extern lang_status_t optimize_ir(lang_ctx_t* ctx);
 
@@ -127,6 +128,7 @@ lang_status_t make_binary(lang_ctx_t* ctx)
     label_table_ctor    (&ctx->label_table,     TABLE_INIT_CAPACITY);
     fixup_table_ctor    (&ctx->fixups,          TABLE_INIT_CAPACITY);
     fixup_table_ctor    (&ctx->global_data_fixups, TABLE_INIT_CAPACITY);
+    fixup_table_ctor    (&ctx->string_fixups,   TABLE_INIT_CAPACITY);
     lib_calls_table_ctor(&ctx->lib_calls_table, TABLE_INIT_CAPACITY);
 
     stdlib_data_ctor    (&ctx->stdlib_data);
@@ -140,11 +142,13 @@ lang_status_t make_binary(lang_ctx_t* ctx)
 
     solve_lib_call_requests(ctx);
 
-    append_global_data_and_patch_refs(ctx);
+    fixup_global_data(ctx);
+    fixup_strings(ctx);
 
     lib_calls_table_dtor(&ctx->lib_calls_table);
     stdlib_data_dtor(&ctx->stdlib_data);
     fixup_table_dtor(&ctx->global_data_fixups);
+    fixup_table_dtor(&ctx->string_fixups);
 
     return LANG_SUCCESS;
 }
@@ -194,21 +198,19 @@ lang_status_t backend_lang_ctx_ctor(lang_ctx_t* ctx, int argc, char* argv[])
 
 //——————————————————————————————————————————————————————————————————————————————
 
-static lang_status_t append_global_data_and_patch_refs(lang_ctx_t* ctx)
+static lang_status_t fixup_global_data(lang_ctx_t* ctx)
 {
     ASSERT(ctx);
 
-    if (ctx->n_globals == 0) {
-        return LANG_SUCCESS;
-    }
-
     size_t global_data_base = ctx->bin_buf.size;
     size_t global_data_size = GLOBAL_VAR_SIZE * (ctx->n_globals + 1);
-    uint8_t* zeros = (uint8_t*) calloc(global_data_size, sizeof(uint8_t));
-    VERIFY(!zeros, return LANG_STD_ALLOCATE_ERROR);
+    if (global_data_size > 0) {
+        uint8_t* zeros = (uint8_t*) calloc(global_data_size, sizeof(uint8_t));
+        VERIFY(!zeros, return LANG_STD_ALLOCATE_ERROR);
 
-    buf_write(&ctx->bin_buf, zeros, global_data_size);
-    free(zeros);
+        buf_write(&ctx->bin_buf, zeros, global_data_size);
+        free(zeros);
+    }
 
     for (size_t i = 0; i < ctx->global_data_fixups.size; i++) {
         fixup_entry_t* entry = &ctx->global_data_fixups.entries[i];
@@ -217,6 +219,26 @@ static lang_status_t append_global_data_and_patch_refs(lang_ctx_t* ctx)
         int32_t rel = (int32_t) target_addr - (int32_t) current_addr;
 
         memcpy(ctx->bin_buf.data + entry->offset, &rel, sizeof(rel));
+    }
+
+    return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+static lang_status_t fixup_strings(lang_ctx_t* ctx)
+{
+    ASSERT(ctx);
+
+    for (size_t i = 0; i < ctx->string_fixups.size; i++) {
+        fixup_entry_t* entry = &ctx->string_fixups.entries[i];
+        const char* str = entry->label.value.global_name;
+        uint32_t target_addr = (uint32_t) ctx->bin_buf.size;
+        uint32_t current_addr = entry->offset + 4;
+        int32_t rel = (int32_t) target_addr - (int32_t) current_addr;
+
+        memcpy(ctx->bin_buf.data + entry->offset, &rel, sizeof(rel));
+        buf_write(&ctx->bin_buf, str, strlen(str) + 1);
     }
 
     return LANG_SUCCESS;
