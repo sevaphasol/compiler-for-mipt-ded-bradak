@@ -245,6 +245,7 @@ struct lang_ctx_t
     size_t            n_labels;
     size_t            n_globals;
     size_t            n_locals;
+    bool              emitting_global_init;
 
     ir_node_t*        ir_list;
     buffer_t          ir_buf;
@@ -252,6 +253,7 @@ struct lang_ctx_t
 
     label_table_t     label_table;
     fixup_table_t     fixups;
+    fixup_table_t     global_data_fixups;
     
     lib_calls_table_t lib_calls_table;
     stdlib_data_t     stdlib_data;

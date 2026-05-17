@@ -66,6 +66,7 @@ lang_status_t lang_ctx_ctor(lang_ctx_t* ctx,
     ctx->name_table.n_names = 0;
     ctx->n_globals = 0;
     ctx->n_locals = 0;
+    ctx->emitting_global_init = false;
     ctx->level = 0;
     //---------------------------------------------------------------//
 

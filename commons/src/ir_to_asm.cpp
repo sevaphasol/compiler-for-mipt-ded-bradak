@@ -78,6 +78,10 @@ lang_status_t operand_ir_to_asm(lang_ctx_t* ctx, ir_opd_t* opd)
             }
             break;
         }
+        case IR_OPD_GLOBAL_MEMORY: {
+            RAW_ASM("[rel __global_data + %d]", opd->value.offset);
+            break;
+        }
         case IR_OPD_LOCAL_LABEL: {
             RAW_ASM(".L%ld", opd->value.local_label_number);
             break;

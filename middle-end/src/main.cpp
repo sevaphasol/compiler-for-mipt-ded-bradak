@@ -125,6 +125,7 @@ lang_status_t middle_end_lang_ctx_ctor(lang_ctx_t* ctx, int argc, char* argv[])
     ctx->name_table.n_names = 0;
     ctx->n_globals = 0;
     ctx->n_locals = 0;
+    ctx->emitting_global_init = false;
     ctx->level = 0;
 
     VERIFY(node_allocator_ctor(ctx->node_allocator, N_NODES_INIT),

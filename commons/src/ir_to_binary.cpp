@@ -318,6 +318,39 @@ lang_status_t encode_push_or_pop_mem(lang_ctx_t*        ctx,
 
 //——————————————————————————————————————————————————————————————————————————————
 
+static lang_status_t encode_push_or_pop_global_mem(lang_ctx_t*        ctx,
+                                                   ir_instr_t*        ir_instr,
+                                                   bin_instr_t*       bin_instr,
+                                                   x86_64_opcode_t    opc,
+                                                   x86_64_modrm_reg_t modrm_reg)
+{
+    ASSERT(ctx);
+    ASSERT(ir_instr);
+    ASSERT(bin_instr);
+
+    bin_instr->rex = build_rex(REX_R_UNUSED, REX_B_UNUSED);
+    bin_instr->info.has_rex = true;
+
+    bin_instr->opc = opc;
+    bin_instr->info.opcode_size = 1;
+
+    bin_instr->modrm = build_modrm(X86_64_MOD_M_NO_DISP, modrm_reg, 5);
+    bin_instr->info.has_modrm = true;
+
+    bin_instr->info.has_disp = true;
+    bin_instr->info.disp_size = 4;
+    bin_instr->disp = 0;
+
+    add_fixup(&ctx->global_data_fixups,
+              NULL,
+              (size_t) ir_instr->opd1.value.offset,
+              (uint32_t) (ctx->bin_buf.size + 3));
+
+    return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
 lang_status_t encode_push_imm(lang_ctx_t*  ctx,
                               ir_instr_t*  ir_instr,
                               bin_instr_t* bin_instr)
@@ -354,6 +387,11 @@ lang_status_t encode_push(lang_ctx_t*  ctx,
                                           X86_64_PUSH_M_OPCODE,
                                           X86_64_PUSH_M_MODRM_REG);
         }
+        case IR_OPD_GLOBAL_MEMORY: {
+            return encode_push_or_pop_global_mem(ctx, ir_instr, bin_instr,
+                                                 X86_64_PUSH_M_OPCODE,
+                                                 X86_64_PUSH_M_MODRM_REG);
+        }
         case IR_OPD_IMMEDIATE: {
             return encode_push_imm(ctx, ir_instr, bin_instr);
         }
@@ -382,6 +420,11 @@ lang_status_t encode_pop(lang_ctx_t*  ctx,
             return encode_push_or_pop_mem(ctx, ir_instr, bin_instr,
                                           X86_64_POP_M_OPCODE,
                                           X86_64_POP_M_MODRM_REG);
+        }
+        case IR_OPD_GLOBAL_MEMORY: {
+            return encode_push_or_pop_global_mem(ctx, ir_instr, bin_instr,
+                                                 X86_64_POP_M_OPCODE,
+                                                 X86_64_POP_M_MODRM_REG);
         }
         default:
             return LANG_ERROR;

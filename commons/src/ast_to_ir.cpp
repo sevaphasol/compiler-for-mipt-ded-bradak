@@ -9,6 +9,10 @@
 
 //——————————————————————————————————————————————————————————————————————————————
 
+static lang_status_t emit_global_var_inits(lang_ctx_t* ctx, node_t* node);
+
+//——————————————————————————————————————————————————————————————————————————————
+
 lang_status_t ir_emit_instr(buffer_t* ir_buf, ir_instr_t ir_instr)
 {
     ir_instr_t* ir_instr_ptr = &ir_instr;
@@ -25,9 +29,17 @@ lang_status_t build_ir(lang_ctx_t* ctx)
     lang_status_t status = LANG_SUCCESS;
 
     EMIT(OP_GLOBAL_LABEL("_start"));
+    EMIT(OP_CALL(OPD_GLOBAL_LABEL("__global_init")));
     EMIT(OP_CALL(OPD_GLOBAL_LABEL("main")));
+    EMIT(OP_MOV(OPD_REG(REG_RDI), OPD_REG(REG_RAX)));
     EMIT(OP_MOV(OPD_REG(REG_RAX), OPD_IMM(60)));
     EMIT(OP_SYSCALL);
+
+    EMIT(OP_GLOBAL_LABEL("__global_init"));
+    ctx->emitting_global_init = true;
+    emit_global_var_inits(ctx, ctx->tree);
+    ctx->emitting_global_init = false;
+    EMIT(OP_RET);
 
     return node_to_ir(ctx, ctx->tree);
 }
@@ -66,7 +78,11 @@ lang_status_t var_to_ir(lang_ctx_t* ctx, node_t* node)
 
     identifier_t var = _ID(node);
 
-    EMIT(OP_PUSH(OPD_MEM(-var.addr)));
+    if (var.is_global) {
+        EMIT(OP_PUSH(OPD_GLOBAL_MEM(var.addr)));
+    } else {
+        EMIT(OP_PUSH(OPD_MEM(-var.addr)));
+    }
 
     return LANG_SUCCESS;
 }
@@ -221,7 +237,7 @@ lang_status_t div_to_ir(lang_ctx_t* ctx, node_t* node)
 
 //——————————————————————————————————————————————————————————————————————————————
 
-lang_status_t assignment_to_ir(lang_ctx_t* ctx, node_t* node) // TODO global vars
+lang_status_t assignment_to_ir(lang_ctx_t* ctx, node_t* node)
 {
     ASSERT(ctx);
     ASSERT(node);
@@ -230,7 +246,11 @@ lang_status_t assignment_to_ir(lang_ctx_t* ctx, node_t* node) // TODO global var
 
     node_to_ir(ctx, node->right);
 
-    EMIT(OP_POP(OPD_MEM(-var.addr)));
+    if (var.is_global) {
+        EMIT(OP_POP(OPD_GLOBAL_MEM(var.addr)));
+    } else {
+        EMIT(OP_POP(OPD_MEM(-var.addr)));
+    }
 
     return LANG_SUCCESS;
 }
@@ -265,10 +285,44 @@ lang_status_t new_var_to_ir(lang_ctx_t* ctx, node_t* node)
     identifier_t* var_id     = &_ID(var);
 
     if (!var_id->addr) {
-        var_id->addr = VAR_SIZE * (++ctx->n_locals);
+        if (var_id->is_global) {
+            var_id->addr = VAR_SIZE * (++ctx->n_globals);
+        } else {
+            var_id->addr = VAR_SIZE * (++ctx->n_locals);
+        }
+    }
+
+    if (var_id->is_global && !ctx->emitting_global_init) {
+        return LANG_SUCCESS;
     }
 
     assignment_to_ir(ctx, assignment);
+
+    return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+static lang_status_t emit_global_var_inits(lang_ctx_t* ctx, node_t* node)
+{
+    if (!node) {
+        return LANG_SUCCESS;
+    }
+
+    if (node->value_type == OPERATOR && node->value.operator_code == STATEMENT) {
+        emit_global_var_inits(ctx, node->left);
+        emit_global_var_inits(ctx, node->right);
+        return LANG_SUCCESS;
+    }
+
+    if (node->value_type == OPERATOR && node->value.operator_code == NEW_VAR) {
+        node_t* assignment = node->left;
+        if (assignment && assignment->left &&
+            assignment->left->value_type == IDENTIFIER &&
+            _ID(assignment->left).is_global) {
+            return new_var_to_ir(ctx, node);
+        }
+    }
 
     return LANG_SUCCESS;
 }

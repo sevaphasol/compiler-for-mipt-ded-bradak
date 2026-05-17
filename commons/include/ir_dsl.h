@@ -9,6 +9,8 @@
 
 #define OPD_REG(_reg) (ir_opd_t){.type = IR_OPD_REGISTER,  .value = {.reg    = _reg}}
 #define OPD_MEM(_off) (ir_opd_t){.type = IR_OPD_MEMORY,    .value = {.offset = _off}}
+#define OPD_GLOBAL_MEM(_off) \
+    (ir_opd_t){.type = IR_OPD_GLOBAL_MEMORY, .value = {.offset = _off}}
 #define OPD_IMM(_imm) (ir_opd_t){.type = IR_OPD_IMMEDIATE, .value = {.imm    = _imm}}
 
 #define OPD_GLOBAL_LABEL(_name) \

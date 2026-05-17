@@ -51,8 +51,13 @@ lang_status_t remove_push_pop(lang_ctx_t* ctx)
         bool is_push_pop  = cur_instr.opc  == IR_OPC_PUSH &&
                             next_instr.opc == IR_OPC_POP;
 
-        bool is_valid_mov = !(cur_instr.opd1.type  == IR_OPD_MEMORY &&
-                              next_instr.opd1.type == IR_OPD_MEMORY);
+        bool cur_is_mem  = cur_instr.opd1.type  == IR_OPD_MEMORY ||
+                           cur_instr.opd1.type  == IR_OPD_GLOBAL_MEMORY;
+        bool next_is_mem = next_instr.opd1.type == IR_OPD_MEMORY ||
+                           next_instr.opd1.type == IR_OPD_GLOBAL_MEMORY;
+        bool is_global_mem = cur_instr.opd1.type  == IR_OPD_GLOBAL_MEMORY ||
+                             next_instr.opd1.type == IR_OPD_GLOBAL_MEMORY;
+        bool is_valid_mov = !is_global_mem && !(cur_is_mem && next_is_mem);
 
         if (is_push_pop && is_valid_mov) {
             replace_push_pop_with_mov(cur_node, cur_node->next);
