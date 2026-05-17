@@ -42,15 +42,15 @@ static void ast_set_parents(node_t* node, node_t* parent);
 }
 
 %token TK_TILDE TK_COLON TK_FDECL
-%token TK_FUNC TK_VAR TK_IF TK_ELSE TK_WHILE TK_RETURN TK_CALL TK_SQRT
+%token TK_FUNC TK_VAR TK_ARR TK_IF TK_ELSE TK_WHILE TK_RETURN TK_CALL TK_SQRT
 %token TK_ASSIGN TK_PLUS TK_MINUS TK_STAR TK_SLASH
-%token TK_L_ROUND TK_R_ROUND TK_L_CURLY TK_R_CURLY
+%token TK_L_ROUND TK_R_ROUND TK_L_CURLY TK_R_CURLY TK_L_SQUARE TK_R_SQUARE
 %token <num> TK_NUMBER
 %token <str> TK_IDENTIFIER
 %token <str> TK_STRING
 %token TK_ERROR
 
-%type <node> program top_level_list top_level_decl function_def function_decl var_decl 
+%type <node> program top_level_list top_level_decl function_def function_decl var_decl arr_decl
 %type <node> param_list param param_rest
 %type <node> body statement_list statement
 %type <node> assignment if_stmt while_stmt return_stmt
@@ -84,6 +84,7 @@ top_level_decl
     : TK_TILDE { is_global_context = 1; } function_def   { $$ = $3; }
     | TK_TILDE { is_global_context = 1; } function_decl  { $$ = $3; }
     | TK_TILDE { is_global_context = 1; } var_decl       { $$ = $3; }
+    | TK_TILDE { is_global_context = 1; } arr_decl       { $$ = $3; }
     ;
 
 function_decl
@@ -233,6 +234,26 @@ var_decl
         }
     ;
 
+arr_decl
+    : TK_ARR TK_IDENTIFIER TK_L_SQUARE expression TK_R_SQUARE
+        {
+            size_t idx = add_identifier($2);
+            if (check_var(ctx, &idx, ON_REDECLARATION) != LANG_SUCCESS) {
+                fprintf(stderr, "Error: Redeclaration of variable '%s'\n", $2);
+                YYERROR;
+            }
+
+            node_t* id_node = _IDENTIFIER(idx);
+            add_new_id(ctx, ARR, id_node, is_global_context);
+
+            node_t* arr_node = _OPERATOR(NEW_ARR);
+            arr_node->left = id_node;
+            arr_node->right = $4;
+            $$ = arr_node;
+            free($2);
+        }
+    ;
+
 body
     : TK_L_CURLY { push_new_id_counter(ctx); }
       statement_list TK_R_CURLY
@@ -252,6 +273,7 @@ statement_list
 
 statement
     : TK_TILDE { is_global_context = 0; } var_decl      { $$ = $3; }
+    | TK_TILDE { is_global_context = 0; } arr_decl      { $$ = $3; }
     | TK_TILDE assignment                               { $$ = $2; }
     | TK_TILDE if_stmt                                  { $$ = $2; }
     | TK_TILDE while_stmt                               { $$ = $2; }
@@ -271,6 +293,27 @@ assignment
             node_t* assign = _OPERATOR(ASSIGNMENT);
             assign->left = id_node;
             assign->right = $3;
+            $$ = assign;
+            free($1);
+        }
+    | TK_IDENTIFIER TK_L_SQUARE expression TK_R_SQUARE TK_ASSIGN expression
+        {
+            size_t idx = get_identifier_index($1);
+            if (check_var(ctx, &idx, ON_INITED) != LANG_SUCCESS) {
+                fprintf(stderr, "Error: Undeclared variable '%s'\n", $1);
+                YYERROR;
+            }
+            node_t* id_node = _IDENTIFIER(idx); 
+            node_t* assign = _OPERATOR(ASSIGNMENT);
+
+            node_t* arr_id = _IDENTIFIER(idx);
+            node_t* index = $3;
+            node_t* arr_elem = _OPERATOR(ARR_ELEM);
+            arr_elem->left = arr_id;
+            arr_elem->right = $3;
+
+            assign->left = arr_elem;
+            assign->right = $6;
             $$ = assign;
             free($1);
         }
@@ -352,6 +395,23 @@ unary_expr
 primary_expr
     : TK_NUMBER   { $$ = _NUMBER($1); }
     | TK_STRING   { $$ = _STRING($1); }
+    | TK_IDENTIFIER TK_L_SQUARE expression TK_R_SQUARE
+    {
+        size_t idx = get_identifier_index($1);
+        if (check_var(ctx, &idx, ON_INITED) != LANG_SUCCESS) {
+            fprintf(stderr, "Error: Undeclared variable '%s'\n", $1);
+            YYERROR;
+        }
+
+        node_t* arr_elem = _OPERATOR(ARR_ELEM);
+        node_t* arr_id = _IDENTIFIER(idx);
+        node_t* index = $3;
+
+        arr_elem->left = arr_id;
+        arr_elem->right = index;
+        $$ = arr_elem;
+        free($1);
+    }
     | TK_IDENTIFIER
         {
             size_t idx = get_identifier_index($1);
@@ -434,7 +494,7 @@ static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t*
     ctx->name_table.ids[new_id].len       = len;
     ctx->name_table.ids[new_id].n_params  = 0;
     ctx->name_table.ids[new_id].is_inited = true;
-    ctx->name_table.ids[new_id].addr      = 0;
+    ctx->name_table.ids[new_id].addr      = -1;
     ctx->name_table.ids[new_id].is_global = is_global;
     ctx->name_table.ids[new_id].is_stdlib = 0;
     node->value.id_index = new_id;   /* replace name index with the new id index */

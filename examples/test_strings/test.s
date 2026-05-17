@@ -8,9 +8,8 @@ _start:
         mov rax, 60
         syscall
 __global_init:
-        lea rax, [rel __strings + "belominon"]
-        push qword rax
-        pop qword [rel __global_data + 8]
+        lea r12, [rel __strings + "belominon"]
+        mov [rel __global_data + 0], r12
         ret
 main:
         push qword rbp
@@ -19,7 +18,7 @@ main:
         call scan_str_cdecl
         add rsp, 0
         mov [rbp - 8], rax
-        push qword [rel __global_data + 8]
+        push qword [rel __global_data + 0]
         push qword [rbp - 8]
         call str_cmp
         add rsp, 16

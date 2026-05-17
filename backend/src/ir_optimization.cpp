@@ -1,6 +1,7 @@
 #include "lang.h"
 #include "ir.h"
 #include "ir_list.h"
+#include "encode_utils.h"
 #include "custom_assert.h"
 #include "buffer.h"
 #include "graph_dump.h"
@@ -51,13 +52,9 @@ lang_status_t remove_push_pop(lang_ctx_t* ctx)
         bool is_push_pop  = cur_instr.opc  == IR_OPC_PUSH &&
                             next_instr.opc == IR_OPC_POP;
 
-        bool cur_is_mem  = cur_instr.opd1.type  == IR_OPD_MEMORY ||
-                           cur_instr.opd1.type  == IR_OPD_GLOBAL_MEMORY;
-        bool next_is_mem = next_instr.opd1.type == IR_OPD_MEMORY ||
-                           next_instr.opd1.type == IR_OPD_GLOBAL_MEMORY;
-        bool is_global_mem = cur_instr.opd1.type  == IR_OPD_GLOBAL_MEMORY ||
-                             next_instr.opd1.type == IR_OPD_GLOBAL_MEMORY;
-        bool is_valid_mov = !is_global_mem && !(cur_is_mem && next_is_mem);
+        bool cur_is_mem  = is_memory_operand(cur_instr.opd1.type);
+        bool next_is_mem = is_memory_operand(next_instr.opd1.type);
+        bool is_valid_mov = !(cur_is_mem && next_is_mem);
 
         if (is_push_pop && is_valid_mov) {
             replace_push_pop_with_mov(cur_node, cur_node->next);

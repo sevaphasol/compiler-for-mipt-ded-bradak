@@ -44,6 +44,7 @@ struct label_table_t {
 
 struct fixup_entry_t {
     uint32_t offset;
+    uint32_t rel_base;
     label_t  label;
 };
 
@@ -66,7 +67,11 @@ lang_status_t label_table_find_local(label_table_t* table, size_t number, uint32
 
 lang_status_t fixup_table_ctor(fixup_table_t* table, size_t init_capacity);
 lang_status_t fixup_table_dtor(fixup_table_t* fixups);
-lang_status_t add_fixup(fixup_table_t* table, const char* global_name, size_t local_number, uint32_t offset);
+lang_status_t add_fixup(fixup_table_t* table,
+                        const char*    global_name,
+                        size_t         local_number,
+                        uint32_t       offset,
+                        uint32_t       rel_base);
 lang_status_t fixup_table_apply(fixup_table_t* table, label_table_t* label_table, buffer_t* code_buf);
 
 //——————————————————————————————————————————————————————————————————————————————

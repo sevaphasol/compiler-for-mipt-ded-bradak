@@ -33,7 +33,7 @@ lang_status_t read_input_ctx(lang_ctx_t* ctx)
     
     ast_set_parents(ctx->tree, NULL);
 
-    VERIFY(graph_dump(ctx, ctx->tree, TREE),
+    VERIFY(graph_dump(ctx, ctx->tree, GRAPH_DUMP_MODE_TREE),
            return LANG_ERROR);
 
     return LANG_SUCCESS;
@@ -73,6 +73,7 @@ lang_status_t read_name_table(lang_ctx_t* ctx)
         ctx->name_table.ids[i].n_params  = n_params;
         ctx->name_table.ids[i].name      = strdup(buf);
         ctx->name_table.ids[i].is_global = is_global;
+        ctx->name_table.ids[i].addr      = -1;
     }
 
     sscanf(ctx->code, " %ld%n", &ctx->n_nodes, &nchars);

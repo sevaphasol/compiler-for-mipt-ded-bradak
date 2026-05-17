@@ -1,0 +1,16 @@
+~ fdecl print_num_cdecl(: var n)
+
+~ func main()
+{
+    ~ arr values[3]
+
+    ~ values[0] = 11
+    ~ values[1] = 22
+    ~ values[2] = values[0] + values[1]
+
+    ~ call print_num_cdecl(: values[0])
+    ~ call print_num_cdecl(: values[1])
+    ~ call print_num_cdecl(: values[2])
+
+    ~ return 0
+}

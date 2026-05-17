@@ -19,8 +19,6 @@
 
 //——————————————————————————————————————————————————————————————————————————————
 
-static const size_t GLOBAL_VAR_SIZE = 8;
-
 static lang_status_t backend_lang_ctx_ctor (lang_ctx_t* ctx,
                                             int         argc,
                                             char*       argv[]);
@@ -184,8 +182,8 @@ lang_status_t backend_lang_ctx_ctor(lang_ctx_t* ctx, int argc, char* argv[])
     VERIFY(!ctx->name_table.names, return LANG_STD_ALLOCATE_ERROR);
 
     ctx->name_table.n_names = 0;
-    ctx->n_globals = 0;
-    ctx->n_locals = 0;
+    ctx->global_data_size = 0;
+    ctx->cur_stack_frame_size = 0;
     ctx->emitting_global_init = false;
     ctx->level = 0;
 
@@ -203,20 +201,18 @@ static lang_status_t fixup_global_data(lang_ctx_t* ctx)
     ASSERT(ctx);
 
     size_t global_data_base = ctx->bin_buf.size;
-    size_t global_data_size = GLOBAL_VAR_SIZE * (ctx->n_globals + 1);
-    if (global_data_size > 0) {
-        uint8_t* zeros = (uint8_t*) calloc(global_data_size, sizeof(uint8_t));
+    if (ctx->global_data_size > 0) {
+        uint8_t* zeros = (uint8_t*) calloc(ctx->global_data_size, sizeof(uint8_t));
         VERIFY(!zeros, return LANG_STD_ALLOCATE_ERROR);
 
-        buf_write(&ctx->bin_buf, zeros, global_data_size);
+        buf_write(&ctx->bin_buf, zeros, ctx->global_data_size);
         free(zeros);
     }
 
     for (size_t i = 0; i < ctx->global_data_fixups.size; i++) {
         fixup_entry_t* entry = &ctx->global_data_fixups.entries[i];
         uint32_t target_addr = (uint32_t) (global_data_base + entry->label.value.local_number);
-        uint32_t current_addr = entry->offset + 4;
-        int32_t rel = (int32_t) target_addr - (int32_t) current_addr;
+        int32_t rel = (int32_t) target_addr - (int32_t) entry->rel_base;
 
         memcpy(ctx->bin_buf.data + entry->offset, &rel, sizeof(rel));
     }
@@ -234,8 +230,7 @@ static lang_status_t fixup_strings(lang_ctx_t* ctx)
         fixup_entry_t* entry = &ctx->string_fixups.entries[i];
         const char* str = entry->label.value.global_name;
         uint32_t target_addr = (uint32_t) ctx->bin_buf.size;
-        uint32_t current_addr = entry->offset + 4;
-        int32_t rel = (int32_t) target_addr - (int32_t) current_addr;
+        int32_t rel = (int32_t) target_addr - (int32_t) entry->rel_base;
 
         memcpy(ctx->bin_buf.data + entry->offset, &rel, sizeof(rel));
         buf_write(&ctx->bin_buf, str, strlen(str) + 1);

@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
            middle_end_lang_ctx_dtor(&ctx);
            return EXIT_FAILURE);
 
-    VERIFY(graph_dump(&ctx, ctx.tree, TREE),
+    VERIFY(graph_dump(&ctx, ctx.tree, GRAPH_DUMP_MODE_TREE),
            middle_end_lang_ctx_dtor(&ctx);
            return EXIT_FAILURE);
 
@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
            middle_end_lang_ctx_dtor(&ctx);
            return EXIT_FAILURE);
 
-    VERIFY(graph_dump(&ctx, ctx.tree, TREE),
+    VERIFY(graph_dump(&ctx, ctx.tree, GRAPH_DUMP_MODE_TREE),
            middle_end_lang_ctx_dtor(&ctx);
            return EXIT_FAILURE);
 
@@ -123,8 +123,8 @@ lang_status_t middle_end_lang_ctx_ctor(lang_ctx_t* ctx, int argc, char* argv[])
     VERIFY(!ctx->name_table.names, return LANG_STD_ALLOCATE_ERROR);
 
     ctx->name_table.n_names = 0;
-    ctx->n_globals = 0;
-    ctx->n_locals = 0;
+    ctx->global_data_size = 0;
+    ctx->cur_stack_frame_size = 0;
     ctx->emitting_global_init = false;
     ctx->level = 0;
 

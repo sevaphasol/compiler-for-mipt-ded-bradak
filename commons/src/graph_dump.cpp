@@ -6,6 +6,7 @@
 #include <stdarg.h>
 
 #include "graph_dump.h"
+#include "lang.h"
 #include "node_allocator.h"
 #include "custom_assert.h"
 #include "ir.h"
@@ -91,7 +92,7 @@ tree_dump_status_t make_dot_ir_opd(FILE* file, ir_opd_t* opd)
                                  RegNames[opd->value.reg]);
             break;
         }
-        case IR_OPD_MEMORY: {
+        case IR_OPD_STFRAME_MEMORY: {
             make_dot_elem_number(file, opd, "MEMORY",
                                  opd->value.offset);
             break;
@@ -212,9 +213,9 @@ tree_dump_status_t graph_dump(lang_ctx_t* ctx,
 
     dot_file_init(dot_file);
 
-    if (mode == TREE) {
+    if (mode == GRAPH_DUMP_MODE_TREE) {
         make_edges(ctx, node, dot_file);
-    } else if (mode == ARR) {
+    } else if (mode == GRAPH_DUMP_MODE_LIST) {
         for (int node_ind = 0; node_ind < ctx->n_nodes; node_ind++) {
             make_elem(ctx, ctx->nodes[node_ind], dot_file);
         }
@@ -318,15 +319,14 @@ tree_dump_status_t make_elem(lang_ctx_t* ctx, node_t* node, FILE* file)
             break;
         }
         case IDENTIFIER: {
-            const char* id_type = "UNKNOWN";
+            const char* id_type;
             identifier_t node_id = ctx->name_table.ids[node->value.id_index];
-
-            if (node_id.type == VAR) {
-                id_type = "VAR";
-            }
-            else if (node_id.type == FUNC_DEF) {
-                id_type = "FUNC_DEF";
-            }
+			switch(node_id.type) {
+				case VAR:      id_type = "VAR";      break;
+				case FUNC_DEF: id_type = "FUNC_DEF"; break;
+				case ARR:      id_type = "ARR";      break;
+				default:       id_type = "UNKNOWN";  break;
+			}
 
             make_dot_ast_id(file, node,
                            "IDENTIFIER",

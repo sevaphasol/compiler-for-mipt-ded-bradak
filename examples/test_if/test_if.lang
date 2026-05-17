@@ -2,7 +2,7 @@
 
 ~ func main()
 {
-    ~ if (0) {
+    ~ if (0 < 1) {
         ~ call print_num_cdecl(: 0)
         ~ return 0
     }

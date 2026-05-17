@@ -1,0 +1,46 @@
+~ fdecl print_num_cdecl(: var n)
+~ fdecl scan_num_cdecl()
+
+~ arr heap[1000]
+~ var heap_size = 0
+
+~ func heap_push(: var n)
+{
+    heap[heap_size] = n
+    heap_size = heap_size + 1
+}
+
+~ func heap_pop()
+{
+    heap[heap_size] = 0
+    heap_size = heap_size - 1
+}
+
+~ func heap_top()
+{
+    ~ return heap[heap_size]
+}
+
+~ func fill_elems()
+{
+    ~ var i = 10
+    ~ while (i) {
+        ~ elems[10 - i] = call scan_num_cdecl()
+        ~ i = i - 1
+    }
+
+    ~ return 0
+}
+
+~ func main()
+{
+    ~ call fill_elems()
+
+    ~ var i = 10
+    ~ while (i) {
+        ~ i = i - 1
+        ~ call print_num_cdecl(: elems[i])
+    }
+
+    ~ return 0
+}

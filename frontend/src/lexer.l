@@ -54,6 +54,7 @@ newline     [\n]
 
 "func"           { return TK_FUNC; }
 "var"            { return TK_VAR; }
+"arr"            { return TK_ARR; }
 "if"             { return TK_IF; }
 "else"           { return TK_ELSE; }
 "while"          { return TK_WHILE; }
@@ -71,6 +72,8 @@ newline     [\n]
 ")"              { return TK_R_ROUND; }
 "{"              { return TK_L_CURLY; }
 "}"              { return TK_R_CURLY; }
+"["              { return TK_L_SQUARE; }
+"]"              { return TK_R_SQUARE; }
 
 {number}         { 
     yylval.num = atoi(yytext); 

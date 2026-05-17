@@ -37,7 +37,7 @@ int main(int argc, const char* argv[])
 
     name_table_output(&ctx_local);
     tree_output(&ctx_local, ctx_local.tree);
-    graph_dump(&ctx_local, ctx_local.tree, TREE);
+    graph_dump(&ctx_local, ctx_local.tree, GRAPH_DUMP_MODE_TREE);
 
     lang_ctx_dtor(&ctx_local);
     fprintf(stderr, _PURPLE("frontend:  ") _GREEN("success\n"));
