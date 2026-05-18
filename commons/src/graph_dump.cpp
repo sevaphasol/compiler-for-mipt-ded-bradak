@@ -6,6 +6,7 @@
 #include <stdarg.h>
 
 #include "graph_dump.h"
+#include "lang.h"
 #include "node_allocator.h"
 #include "custom_assert.h"
 #include "ir.h"
@@ -24,6 +25,7 @@ static tree_dump_status_t make_elem     (lang_ctx_t*     ctx,
 
 static tree_dump_status_t create_png    (const char* dot_file_name,
                                          const char* png_file_name);
+static void dot_print_escaped           (FILE* file, const char* str);
 
 //——————————————————————————————————————————————————————————————————————————————
 
@@ -38,11 +40,12 @@ void make_dot_elem_str(FILE*       file,
 
     fprintf(file, "elem%p["
                   "shape=\"Mrecord\", "
-                  "label= \"{%s | val = %s}\""
-                  "];\n",
-                  elem_number,
-                  label,
-                  str);
+                  "label= \"{", elem_number);
+    dot_print_escaped(file, label);
+    fprintf(file, " | val = ");
+    dot_print_escaped(file, str);
+    fprintf(file, "}\""
+                  "];\n");
 }
 
 //——————————————————————————————————————————————————————————————————————————————
@@ -89,7 +92,7 @@ tree_dump_status_t make_dot_ir_opd(FILE* file, ir_opd_t* opd)
                                  RegNames[opd->value.reg]);
             break;
         }
-        case IR_OPD_MEMORY: {
+        case IR_OPD_STFRAME_MEMORY: {
             make_dot_elem_number(file, opd, "MEMORY",
                                  opd->value.offset);
             break;
@@ -102,6 +105,16 @@ tree_dump_status_t make_dot_ir_opd(FILE* file, ir_opd_t* opd)
         case IR_OPD_GLOBAL_LABEL: {
             make_dot_elem_str   (file, opd, "GLOBAL LABEL",
                                  opd->value.global_label_name);
+            break;
+        }
+        case IR_OPD_GLOBAL_MEMORY: {
+            make_dot_elem_number(file, opd, "GLOBAL MEMORY",
+                                 opd->value.offset);
+            break;
+        }
+        case IR_OPD_STRING_LITERAL: {
+            make_dot_elem_str(file, opd, "STRING LITERAL",
+                              opd->value.string_literal);
             break;
         }
         case IR_OPD_LOCAL_LABEL: {
@@ -200,9 +213,9 @@ tree_dump_status_t graph_dump(lang_ctx_t* ctx,
 
     dot_file_init(dot_file);
 
-    if (mode == TREE) {
+    if (mode == GRAPH_DUMP_MODE_TREE) {
         make_edges(ctx, node, dot_file);
-    } else if (mode == ARR) {
+    } else if (mode == GRAPH_DUMP_MODE_LIST) {
         for (int node_ind = 0; node_ind < ctx->n_nodes; node_ind++) {
             make_elem(ctx, ctx->nodes[node_ind], dot_file);
         }
@@ -256,13 +269,14 @@ tree_dump_status_t make_dot_ast_id(FILE*       file,
 {
     fprintf(file, "elem%p["
                    "shape=\"Mrecord\", "
-                   "label= \"{%s | type = %s | name = %s | operator_code = %ld}\""
-                   "];\n",
-                   elem_number,
-                   type,
-                   label,
-                   name,
-                   number);
+                   "label= \"{", elem_number);
+    dot_print_escaped(file, type);
+    fprintf(file, " | type = ");
+    dot_print_escaped(file, label);
+    fprintf(file, " | name = ");
+    dot_print_escaped(file, name);
+    fprintf(file, " | operator_code = %ld}\""
+                  "];\n", number);
 
     return TREE_DUMP_SUCCESS;
 }
@@ -277,12 +291,12 @@ tree_dump_status_t make_dot_ast_operator(FILE*       file,
 {
     fprintf(file, "elem%p["
                    "shape=\"Mrecord\", "
-                   "label= \"{%s | name = %s | operator_code = %ld}\""
-                   "];\n",
-                   elem_number,
-                   label,
-                   name,
-                   number);
+                   "label= \"{", elem_number);
+    dot_print_escaped(file, label);
+    fprintf(file, " | name = ");
+    dot_print_escaped(file, name ? name : "null");
+    fprintf(file, " | operator_code = %ld}\""
+                  "];\n", number);
 
     return TREE_DUMP_SUCCESS;
 }
@@ -300,16 +314,19 @@ tree_dump_status_t make_elem(lang_ctx_t* ctx, node_t* node, FILE* file)
             make_dot_elem_number(file, node, "NUMBER", node->value.number);
             break;
         }
+        case STRING: {
+            make_dot_elem_str(file, node, "STRING", node->value.string);
+            break;
+        }
         case IDENTIFIER: {
-            const char* id_type = "UNKNOWN";
+            const char* id_type;
             identifier_t node_id = ctx->name_table.ids[node->value.id_index];
-
-            if (node_id.type == VAR) {
-                id_type = "VAR";
-            }
-            else if (node_id.type == FUNC_DEF) {
-                id_type = "FUNC_DEF";
-            }
+			switch(node_id.type) {
+				case VAR:      id_type = "VAR";      break;
+				case FUNC_DEF: id_type = "FUNC_DEF"; break;
+				case ARR:      id_type = "ARR";      break;
+				default:       id_type = "UNKNOWN";  break;
+			}
 
             make_dot_ast_id(file, node,
                            "IDENTIFIER",
@@ -370,6 +387,26 @@ tree_dump_status_t create_png(const char* dot_file_name,
            return TREE_DUMP_SYSTEM_COMMAND_ERROR);
 
     return TREE_DUMP_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+static void dot_print_escaped(FILE* file, const char* str)
+{
+    ASSERT(file);
+
+    if (!str) {
+        fputs("null", file);
+        return;
+    }
+
+    for (const char* cur = str; *cur; cur++) {
+        if (*cur == '"' || *cur == '\\' || *cur == '{' || *cur == '}' ||
+            *cur == '|' || *cur == '<' || *cur == '>' || *cur == ':') {
+            fputc('\\', file);
+        }
+        fputc(*cur, file);
+    }
 }
 
 //——————————————————————————————————————————————————————————————————————————————

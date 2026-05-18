@@ -1,0 +1,24 @@
+~ var first_global_var = 1
+~ fdecl print_num_cdecl(: var n)
+
+~ var second_global_var = 2
+
+~ func print_global_var(: var global_var)
+{
+    ~ call print_num_cdecl(: second_global_var)
+    ~ call print_num_cdecl(: global_var)
+
+    ~ return 0
+}
+
+~ var third_global_var = 3
+
+~ func main()
+{
+    ~ call print_num_cdecl(: first_global_var)
+    ~ call print_global_var(: third_global_var)
+
+    ~ return 0
+}
+
+~ var belominon = 2

@@ -41,7 +41,8 @@ lang_status_t fixup_table_dtor(fixup_table_t* fixups)
 lang_status_t add_fixup(fixup_table_t* table,
                         const char* global_name,
                         size_t      local_number,
-                        uint32_t    offset)
+                        uint32_t    offset,
+                        uint32_t    rel_base)
 {
     ASSERT(table);
 
@@ -67,6 +68,7 @@ lang_status_t add_fixup(fixup_table_t* table,
 
     table->entries[table->size++] = {
         .offset = offset,
+        .rel_base = rel_base,
         .label = label
     };
 
@@ -96,9 +98,7 @@ lang_status_t fixup_table_apply(fixup_table_t* fixup_table,
             label_table_find_local(label_table, value.local_number, &target_addr);
         }
 
-        uint32_t current_addr = entry->offset + 4;
-
-        int32_t rel = target_addr - current_addr;
+        int32_t rel = (int32_t) target_addr - (int32_t) entry->rel_base;
 
         memcpy(code_buf->data + entry->offset, &rel, 4);
     }

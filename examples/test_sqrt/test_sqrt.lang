@@ -1,12 +1,15 @@
+~ fdecl scan_num_cdecl()
+~ fdecl print_num_cdecl(: var n)
+
 ~ func main()
 {
     ~ var n = 25
 
-    ~ scan(: n)
+    ~ n = call scan_num_cdecl()
 
     ~ n = sqrt(: n)
 
-    ~ print(: n)
+    ~ call print_num_cdecl(: n)
 
     ~ return 0
 }

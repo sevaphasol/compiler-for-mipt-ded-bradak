@@ -29,8 +29,8 @@ enum tree_dump_status_t
 
 enum dump_mode_t
 {
-    TREE = 0,
-    ARR  = 1,
+    GRAPH_DUMP_MODE_TREE = 0,
+    GRAPH_DUMP_MODE_LIST  = 1,
 };
 
 //———————————————————————————————————————————————————————————————————//

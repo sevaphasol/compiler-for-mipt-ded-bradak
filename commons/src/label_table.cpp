@@ -46,13 +46,15 @@ lang_status_t label_table_expand(label_table_t* table)
 {
     ASSERT(table);
 
-    table->labels = (label_t*) realloc(table->labels, table->capacity * sizeof(label_t));
+    size_t new_capacity = table->capacity * 2;
+    label_t* new_labels = (label_t*) realloc(table->labels, new_capacity * sizeof(label_t));
 
-    if (!table->labels) {
+    if (!new_labels) {
         return LANG_STD_ALLOCATE_ERROR;
     }
 
-    table->capacity *= 2;
+    table->labels = new_labels;
+    table->capacity = new_capacity;
 
     return LANG_SUCCESS;
 }

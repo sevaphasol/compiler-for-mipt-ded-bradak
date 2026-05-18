@@ -1,7 +1,10 @@
+~ fdecl scan_num_cdecl()
+~ fdecl print_num_cdecl(: var n)
+
 ~ func solve_linear(: var b : var c)
 {
     ~ if (b) {
-        ~ print (: (0 - c) / b)
+        ~ call print_num_cdecl(: (0 - c) / b)
     }
 
     ~ return 0
@@ -15,8 +18,8 @@
         ~ var x_one = ((0 - b) + sqrt(: D)) / (2 * a)
         ~ var x_two = ((0 - b) - sqrt(: D)) / (2 * a)
 
-        ~ print(: x_one)
-        ~ print(: x_two)
+        ~ call print_num_cdecl(: x_one)
+        ~ call print_num_cdecl(: x_two)
 
         ~ return 0
     }
@@ -30,9 +33,9 @@
     ~ var b = 0
     ~ var c = 0
 
-    ~ scan(: a)
-    ~ scan(: b)
-    ~ scan(: c)
+    ~ a = call scan_num_cdecl()
+    ~ b = call scan_num_cdecl()
+    ~ c = call scan_num_cdecl()
 
     ~ return call solve_square_eq(: a : b : c)
 }

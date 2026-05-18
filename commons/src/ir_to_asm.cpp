@@ -1,5 +1,8 @@
+#include <inttypes.h>
+
 #include "custom_assert.h"
 #include "ir.h"
+#include "ir_operands.h"
 
 #define _DSL_DEFINE_
 #include "dsl.h"
@@ -67,15 +70,31 @@ lang_status_t operand_ir_to_asm(lang_ctx_t* ctx, ir_opd_t* opd)
             break;
         }
         case IR_OPD_IMMEDIATE: {
-            RAW_ASM("%d", opd->value.imm);
+            RAW_ASM("%" PRId64, opd->value.imm);
             break;
         }
-        case IR_OPD_MEMORY: {
+        case IR_OPD_STFRAME_MEMORY: {
             if (opd->value.offset < 0) {
                 RAW_ASM("[rbp - %d]", -opd->value.offset)
             } else {
                 RAW_ASM("[rbp + %d]", opd->value.offset);
             }
+            break;
+        }
+		case IR_OPD_ARR_OFFSET_MEMORY: {
+            if (opd->value.offset < 0) {
+                RAW_ASM("[rbx - %d]", -opd->value.offset)
+            } else {
+                RAW_ASM("[rbx + %d]", opd->value.offset);
+            }
+            break;
+        }
+        case IR_OPD_GLOBAL_MEMORY: {
+            RAW_ASM("[rel __global_data + %d]", opd->value.offset);
+            break;
+        }
+        case IR_OPD_STRING_LITERAL: {
+            RAW_ASM("[rel __strings + \"%s\"]", opd->value.string_literal);
             break;
         }
         case IR_OPD_LOCAL_LABEL: {

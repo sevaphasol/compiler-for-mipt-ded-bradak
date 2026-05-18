@@ -8,11 +8,16 @@
 /* IR operands */
 
 #define OPD_REG(_reg) (ir_opd_t){.type = IR_OPD_REGISTER,  .value = {.reg    = _reg}}
-#define OPD_MEM(_off) (ir_opd_t){.type = IR_OPD_MEMORY,    .value = {.offset = _off}}
+#define OPD_STFRAME_MEM(_off) (ir_opd_t){.type = IR_OPD_STFRAME_MEMORY, .value = {.offset = _off}}
+#define OPD_ARR_OFFSET_MEM(_off) (ir_opd_t){.type = IR_OPD_ARR_OFFSET_MEMORY, .value = {.offset = _off}}
+#define OPD_GLOBAL_MEM(_off) \
+    (ir_opd_t){.type = IR_OPD_GLOBAL_MEMORY, .value = {.offset = _off}}
 #define OPD_IMM(_imm) (ir_opd_t){.type = IR_OPD_IMMEDIATE, .value = {.imm    = _imm}}
 
 #define OPD_GLOBAL_LABEL(_name) \
     (ir_opd_t){.type = IR_OPD_GLOBAL_LABEL, .value = {.global_label_name  = _name}}
+#define OPD_STRING(_str) \
+    (ir_opd_t){.type = IR_OPD_STRING_LITERAL, .value = {.string_literal = _str}}
 #define OPD_STDLIB_LABEL(_name) \
     (ir_opd_t){.type = IR_OPD_STDLIB_LABEL, .value = {.global_label_name  = _name}}
 #define OPD_LOCAL_LABEL(_num) \
@@ -24,9 +29,10 @@
 
 #define OP_ADD(_opd1, _opd2)  (ir_instr_t){IR_OPC_ADD,  _opd1, _opd2}
 #define OP_SUB(_opd1, _opd2)  (ir_instr_t){IR_OPC_SUB,  _opd1, _opd2}
-#define OP_MUL(_opd1, _opd2)  (ir_instr_t){IR_OPC_MUL,  _opd1, _opd2}
-#define OP_DIV(_opd1, _opd2)  (ir_instr_t){IR_OPC_DIV,  _opd1, _opd2}
+#define OP_IMUL(_opd1, _opd2) (ir_instr_t){IR_OPC_IMUL, _opd1, _opd2}
+#define OP_IDIV(_opd1, _opd2) (ir_instr_t){IR_OPC_IDIV, _opd1, _opd2}
 #define OP_MOV(_opd1, _opd2)  (ir_instr_t){IR_OPC_MOV,  _opd1, _opd2}
+#define OP_LEA(_opd1, _opd2)  (ir_instr_t){IR_OPC_LEA,  _opd1, _opd2}
 #define OP_TEST(_opd1, _opd2) (ir_instr_t){IR_OPC_TEST, _opd1, _opd2}
 
 #define OP_PUSH(_opd) (ir_instr_t){IR_OPC_PUSH, _opd, {}}

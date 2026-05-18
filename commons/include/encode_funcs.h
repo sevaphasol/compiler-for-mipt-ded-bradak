@@ -30,6 +30,7 @@ lang_status_t encode_fildl        (lang_ctx_t* ctx,  ir_instr_t*  ir_instr, bin_
 lang_status_t encode_fistpl       (lang_ctx_t* ctx,  ir_instr_t*  ir_instr, bin_instr_t* bin_instr);
 lang_status_t encode_fsqrt        (lang_ctx_t* ctx,  ir_instr_t*  ir_instr, bin_instr_t* bin_instr);
 lang_status_t encode_cqo          (lang_ctx_t* ctx,  ir_instr_t*  ir_instr, bin_instr_t* bin_instr);
+lang_status_t encode_lea          (lang_ctx_t* ctx,  ir_instr_t*  ir_instr, bin_instr_t* bin_instr);
 
 //——————————————————————————————————————————————————————————————————————————————
 

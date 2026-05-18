@@ -31,6 +31,7 @@ enum value_type_t
     OPERATOR   = 1,
     NUMBER     = 2,
     IDENTIFIER = 3,
+    STRING     = 4,
 };
 
 //———————————————————————————————————————————————————————————————————//
@@ -59,10 +60,12 @@ enum operator_code_t
     RET           = 19,
     PARAM_LINKER  = 20,
     NEW_VAR       = 21,
-    NEW_FUNC_DEF  = 22,
-    NEW_FUNC_DECL = 23,
-    CALL          = 24,
-    HLT           = 25,
+    NEW_ARR       = 22,
+    NEW_FUNC_DEF  = 23,
+    NEW_FUNC_DECL = 24,
+    CALL          = 25,
+	ARR_ELEM      = 26,
+    HLT           = 27,
 };
 
 //———————————————————————————————————————————————————————————————————//
@@ -90,6 +93,7 @@ lang_status_t statement_to_ir         (lang_ctx_t* ctx, node_t* node);
 lang_status_t if_to_ir                (lang_ctx_t* ctx, node_t* node);
 lang_status_t while_to_ir             (lang_ctx_t* ctx, node_t* node);
 lang_status_t new_var_to_ir           (lang_ctx_t* ctx, node_t* node);
+lang_status_t new_arr_to_ir           (lang_ctx_t* ctx, node_t* node);
 lang_status_t new_func_to_ir          (lang_ctx_t* ctx, node_t* node);
 lang_status_t func_decl_to_ir         (lang_ctx_t* ctx, node_t* node);
 lang_status_t return_to_ir            (lang_ctx_t* ctx, node_t* node);
@@ -98,6 +102,7 @@ lang_status_t exit_to_ir              (lang_ctx_t* ctx, node_t* node);
 lang_status_t var_to_ir               (lang_ctx_t* ctx, node_t* node);
 lang_status_t node_to_ir              (lang_ctx_t* ctx, node_t* node);
 lang_status_t sqrt_to_ir              (lang_ctx_t* ctx, node_t* node);
+lang_status_t arr_elem                (lang_ctx_t* ctx, node_t* node);
 
 //———————————————————————————————————————————————————————————————————//
 
@@ -127,9 +132,11 @@ const operator_t OperatorsTable[] =
     {RET,           STR_AND_LEN("return"),    nullptr,       0,          &return_to_ir           , nullptr},
     {PARAM_LINKER,  STR_AND_LEN(":"),         nullptr,       2,          nullptr                 , nullptr},
     {NEW_VAR,       STR_AND_LEN("var"),       nullptr,       2,          &new_var_to_ir          , nullptr},
+    {NEW_ARR,       STR_AND_LEN("arr"),       nullptr,       1,          &new_arr_to_ir          , nullptr},
     {NEW_FUNC_DEF,  STR_AND_LEN("func"),      nullptr,       2,          &new_func_to_ir         , nullptr},
     {NEW_FUNC_DECL, STR_AND_LEN("fdecl"),     nullptr,       2,          &func_decl_to_ir        , nullptr},
     {CALL,          STR_AND_LEN("call"),      "call",        0,          &call_to_ir             , nullptr},
+    {ARR_ELEM,      STR_AND_LEN("TODOdelme"), nullptr,       0,          &arr_elem               , nullptr},
     {HLT,           STR_AND_LEN("exit"),      nullptr,       0,          &exit_to_ir             , nullptr}
 };
 
@@ -143,8 +150,9 @@ enum identifier_type_t
 {
     UNKNOWN     = 0,
     VAR         = 1,
-    FUNC_DEF    = 2,
-    FUNC_DECL   = 3,
+    ARR         = 2,
+    FUNC_DEF    = 3,
+    FUNC_DECL   = 4,
 };
 
 //———————————————————————————————————————————————————————————————————//
@@ -171,7 +179,7 @@ struct name_t
 
 //———————————————————————————————————————————————————————————————————//
 
-typedef int number_t;
+typedef int64_t number_t;
 
 //———————————————————————————————————————————————————————————————————//
 
@@ -180,6 +188,7 @@ union value_t
     operator_code_t   operator_code;
     size_t            id_index;
     number_t          number;
+    char*             string;
 };
 
 //———————————————————————————————————————————————————————————————————//
@@ -243,8 +252,10 @@ struct lang_ctx_t
 
     int               level;
     size_t            n_labels;
-    size_t            n_globals;
-    size_t            n_locals;
+    size_t            global_data_size;
+    size_t            cur_stack_frame_size;
+    size_t            cur_func_epilogue_label;
+    bool              emitting_global_init;
 
     ir_node_t*        ir_list;
     buffer_t          ir_buf;
@@ -252,6 +263,8 @@ struct lang_ctx_t
 
     label_table_t     label_table;
     fixup_table_t     fixups;
+    fixup_table_t     global_data_fixups;
+    fixup_table_t     string_fixups;
     
     lib_calls_table_t lib_calls_table;
     stdlib_data_t     stdlib_data;

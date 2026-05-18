@@ -1,11 +1,17 @@
+#include "ir_operands.h"
 #include "lang.h"
 #include "custom_assert.h"
 #include "ir.h"
+#include "lang_status.h"
 
 #define _DSL_DEFINE_
 #include "dsl.h"
 
 #include "ir_dsl.h"
+
+//——————————————————————————————————————————————————————————————————————————————
+
+static lang_status_t emit_globals_inits(lang_ctx_t* ctx, node_t* node);
 
 //——————————————————————————————————————————————————————————————————————————————
 
@@ -25,9 +31,17 @@ lang_status_t build_ir(lang_ctx_t* ctx)
     lang_status_t status = LANG_SUCCESS;
 
     EMIT(OP_GLOBAL_LABEL("_start"));
+    EMIT(OP_CALL(OPD_GLOBAL_LABEL("__global_init")));
     EMIT(OP_CALL(OPD_GLOBAL_LABEL("main")));
+    EMIT(OP_MOV(OPD_REG(REG_RDI), OPD_REG(REG_RAX)));
     EMIT(OP_MOV(OPD_REG(REG_RAX), OPD_IMM(60)));
     EMIT(OP_SYSCALL);
+
+    EMIT(OP_GLOBAL_LABEL("__global_init"));
+    ctx->emitting_global_init = true;
+    emit_globals_inits(ctx, ctx->tree);
+    ctx->emitting_global_init = false;
+    EMIT(OP_RET);
 
     return node_to_ir(ctx, ctx->tree);
 }
@@ -50,6 +64,10 @@ lang_status_t node_to_ir(lang_ctx_t* ctx,
         case NUMBER:
             EMIT(OP_PUSH(OPD_IMM(node->value.number)));
             break;
+        case STRING:
+            EMIT(OP_LEA(OPD_REG(REG_R12), OPD_STRING(node->value.string)));
+            EMIT(OP_PUSH(OPD_REG(REG_R12)));
+            break;
         default:
             return LANG_ERROR;
     }
@@ -66,7 +84,11 @@ lang_status_t var_to_ir(lang_ctx_t* ctx, node_t* node)
 
     identifier_t var = _ID(node);
 
-    EMIT(OP_PUSH(OPD_MEM(-var.addr)));
+    if (var.is_global) {
+        EMIT(OP_PUSH(OPD_GLOBAL_MEM(var.addr)));
+    } else {
+        EMIT(OP_PUSH(OPD_STFRAME_MEM(-var.addr)));
+    }
 
     return LANG_SUCCESS;
 }
@@ -121,7 +143,9 @@ lang_status_t call_to_ir(lang_ctx_t* ctx, node_t* node)
         int32_t allocated_memory = VAR_SIZE * func_id.n_params;
 
         EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
-        EMIT(OP_PUSH(OPD_REG(REG_RAX)));
+        if (!call->parent || call->parent->value.operator_code != STATEMENT) {
+            EMIT(OP_PUSH(OPD_REG(REG_RAX)));
+        }
         return LANG_SUCCESS;
     } 
     
@@ -221,16 +245,42 @@ lang_status_t div_to_ir(lang_ctx_t* ctx, node_t* node)
 
 //——————————————————————————————————————————————————————————————————————————————
 
-lang_status_t assignment_to_ir(lang_ctx_t* ctx, node_t* node) // TODO global vars
+lang_status_t assignment_to_ir(lang_ctx_t* ctx, node_t* node)
 {
     ASSERT(ctx);
     ASSERT(node);
+
+    if (node->left->value_type == OPERATOR &&
+        node->left->value.operator_code == ARR_ELEM) {
+        node_t* arr_elem_node = node->left;
+        node_t* arr_node = arr_elem_node->left;
+        node_t* idx_node = arr_elem_node->right;
+        identifier_t arr = _ID(arr_node);
+
+        node_to_ir(ctx, node->right);
+        node_to_ir(ctx, idx_node);
+        EMIT(OP_POP(OPD_REG(REG_R13)));
+        EMIT(OP_ADD(OPD_REG(REG_R13), OPD_REG(REG_R13)));
+        EMIT(OP_ADD(OPD_REG(REG_R13), OPD_REG(REG_R13)));
+        EMIT(OP_ADD(OPD_REG(REG_R13), OPD_REG(REG_R13)));
+
+        ir_opd_t arr_base_addr = arr.is_global ? OPD_GLOBAL_MEM(arr.addr) : OPD_STFRAME_MEM(-arr.addr);
+        EMIT(OP_LEA(OPD_REG(REG_RBX), arr_base_addr));
+        EMIT(OP_ADD(OPD_REG(REG_RBX), OPD_REG(REG_R13)));
+        EMIT(OP_POP(OPD_ARR_OFFSET_MEM(0)));
+
+        return LANG_SUCCESS;
+    }
 
     identifier_t var = _ID(node->left);
 
     node_to_ir(ctx, node->right);
 
-    EMIT(OP_POP(OPD_MEM(-var.addr)));
+    if (var.is_global) {
+        EMIT(OP_POP(OPD_GLOBAL_MEM(var.addr)));
+    } else {
+        EMIT(OP_POP(OPD_STFRAME_MEM(-var.addr)));
+    }
 
     return LANG_SUCCESS;
 }
@@ -264,11 +314,92 @@ lang_status_t new_var_to_ir(lang_ctx_t* ctx, node_t* node)
     node_t*       var        = assignment->left;
     identifier_t* var_id     = &_ID(var);
 
-    if (!var_id->addr) {
-        var_id->addr = VAR_SIZE * (++ctx->n_locals);
+    if (var_id->addr < 0) {
+        if (var_id->is_global) {
+            var_id->addr = ctx->global_data_size;
+			ctx->global_data_size += VAR_SIZE;
+        } else {
+			ctx->cur_stack_frame_size += VAR_SIZE;
+            var_id->addr = ctx->cur_stack_frame_size;
+        }
+    }
+
+    if (var_id->is_global && !ctx->emitting_global_init) {
+        return LANG_SUCCESS;
     }
 
     assignment_to_ir(ctx, assignment);
+
+    return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+lang_status_t new_arr_to_ir(lang_ctx_t* ctx, node_t* node)
+{
+    ASSERT(ctx);
+    ASSERT(node);
+    ASSERT(node->left);
+    ASSERT(node->right);
+
+    node_t*       arr  = node->left;
+    node_t*       size_node = node->right;
+    identifier_t* arr_id = &_ID(arr);
+
+	size_t arr_size = (size_t) size_node->value.number * VAR_SIZE;
+
+    if (arr_id->addr >= 0) {
+        return LANG_SUCCESS;
+    }
+
+	if (arr_id->is_global) {
+		arr_id->addr = ctx->global_data_size;
+		ctx->global_data_size += arr_size;
+	} else {
+		ctx->cur_stack_frame_size += arr_size;
+		arr_id->addr = ctx->cur_stack_frame_size;
+	}
+
+    return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+static lang_status_t emit_globals_inits(lang_ctx_t* ctx, node_t* node)
+{
+    if (!node) {
+        return LANG_SUCCESS;
+    }
+
+	if (node->value_type != OPERATOR) {
+		return LANG_ERROR;
+	}
+
+	switch(node->value.operator_code) {
+		case STATEMENT: {
+			emit_globals_inits(ctx, node->left);
+	        emit_globals_inits(ctx, node->right);
+    	    return LANG_SUCCESS;
+		}
+		case NEW_VAR: {
+        	node_t* assignment = node->left;
+        	if (assignment && assignment->left &&
+        	    assignment->left->value_type == IDENTIFIER &&
+        	    _ID(assignment->left).is_global) {
+        	    return new_var_to_ir(ctx, node);
+        	}
+		}
+		case NEW_ARR: {
+            node_t* arr = node->left;
+            if (arr && arr->value_type == IDENTIFIER && _ID(arr).is_global) {
+                return new_arr_to_ir(ctx, node);
+            }
+			return LANG_SUCCESS;
+		}
+		default: {
+			return LANG_ERROR;
+		}
+	}
 
     return LANG_SUCCESS;
 }
@@ -310,6 +441,9 @@ lang_status_t new_func_to_ir(lang_ctx_t* ctx,
     EMIT(OP_PUSH(OPD_REG(REG_RBP)));
     EMIT(OP_MOV(OPD_REG(REG_RBP), OPD_REG(REG_RSP)));
 
+    size_t prev_epilogue_label = ctx->cur_func_epilogue_label;
+    ctx->cur_func_epilogue_label = ctx->n_labels++;
+
     size_t sub_rsp_position = ctx->ir_buf.size;
 
     ctx->ir_buf.size += sizeof(ir_instr_t);
@@ -321,15 +455,21 @@ lang_status_t new_func_to_ir(lang_ctx_t* ctx,
     node_to_ir(ctx, func_body);
 
     size_t cur_position = ctx->ir_buf.size;
-    int32_t allocated_memory = VAR_SIZE * ctx->n_locals;
+    int32_t allocated_memory = ctx->cur_stack_frame_size;
 
     ctx->ir_buf.size = sub_rsp_position;
     EMIT(OP_SUB(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
 
     ctx->ir_buf.size = cur_position;
+    EMIT(OP_MOV(OPD_REG(REG_RAX), OPD_IMM(0)));
+    EMIT(OP_LOCAL_LABEL(ctx->cur_func_epilogue_label));
+    EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
+    EMIT(OP_POP(OPD_REG(REG_RBP)));
+    EMIT(OP_RET);
 
-    ctx->n_locals = 0;
+    ctx->cur_stack_frame_size = 0;
     ctx->level    = 0;
+    ctx->cur_func_epilogue_label = prev_epilogue_label;
 
     return LANG_SUCCESS;
 }
@@ -360,13 +500,11 @@ lang_status_t return_to_ir(lang_ctx_t* ctx, node_t* node)
     if (ret_value) {
         node_to_ir(ctx, ret_value);
         EMIT(OP_POP(OPD_REG(REG_RAX)));
+    } else {
+        EMIT(OP_MOV(OPD_REG(REG_RAX), OPD_IMM(0)));
     }
 
-    int32_t allocated_memory = VAR_SIZE * ctx->n_locals;
-
-    EMIT(OP_ADD(OPD_REG(REG_RSP), OPD_IMM(allocated_memory)));
-    EMIT(OP_POP(OPD_REG(REG_RBP)));
-    EMIT(OP_RET);
+    EMIT(OP_JMP(OPD_LOCAL_LABEL(ctx->cur_func_epilogue_label)));
 
     return LANG_SUCCESS;
 }
@@ -447,12 +585,39 @@ lang_status_t sqrt_to_ir(lang_ctx_t* ctx, node_t* node)
 
     identifier_t var = _ID(node->left->left);
 
-    EMIT(OP_FILDL(OPD_MEM(-var.addr)));
+    EMIT(OP_FILDL(OPD_STFRAME_MEM(-var.addr)));
     EMIT(OP_FSQRT);
-    EMIT(OP_FISTPL(OPD_MEM(-var.addr)));
-    EMIT(OP_PUSH(OPD_MEM(-var.addr)));
+    EMIT(OP_FISTPL(OPD_STFRAME_MEM(-var.addr)));
+    EMIT(OP_PUSH(OPD_STFRAME_MEM(-var.addr)));
 
     return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+lang_status_t arr_elem(lang_ctx_t* ctx, node_t* node)
+{
+    ASSERT(ctx);
+    ASSERT(node);
+
+	node_t* arr_elem = node;
+	node_t* arr_node = arr_elem->left;
+	node_t* idx_node = arr_elem->right;
+    identifier_t arr = _ID(arr_node);
+
+	node_to_ir(ctx, idx_node);
+    EMIT(OP_POP(OPD_REG(REG_R13)));
+    EMIT(OP_ADD(OPD_REG(REG_R13), OPD_REG(REG_R13)));
+    EMIT(OP_ADD(OPD_REG(REG_R13), OPD_REG(REG_R13)));
+    EMIT(OP_ADD(OPD_REG(REG_R13), OPD_REG(REG_R13)));
+
+	ir_opd_t arr_base_addr = arr.is_global ? OPD_GLOBAL_MEM(arr.addr) : OPD_STFRAME_MEM(-arr.addr);
+	EMIT(OP_LEA(OPD_REG(REG_RBX), arr_base_addr));
+    EMIT(OP_ADD(OPD_REG(REG_RBX), OPD_REG(REG_R13)));
+	
+	EMIT(OP_PUSH(OPD_ARR_OFFSET_MEM(0)));
+
+	return LANG_SUCCESS;
 }
 
 //——————————————————————————————————————————————————————————————————————————————

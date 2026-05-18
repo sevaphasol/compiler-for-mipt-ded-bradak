@@ -1,12 +1,13 @@
-~ fdecl print(: var val)
+~ fdecl print_num_cdecl(: var val)
+~ fdecl smaller_cdecl(: var lhs : var rhs)
 
 ~ func main()
 {
-    ~ if (0) {
-        ~ call print(: 0)
+    ~ if (call smaller_cdecl(: 0 : 1) ) {
+        ~ call print_num_cdecl(: 0)
         ~ return 0
     }
 
-    ~ call print(: 1)
+    ~ call print_num_cdecl(: 1)
     ~ return 0
 }

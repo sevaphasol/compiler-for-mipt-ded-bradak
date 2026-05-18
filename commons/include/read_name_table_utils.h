@@ -12,8 +12,8 @@
 lang_status_t read_tree               (lang_ctx_t* ctx,
                                        node_t**    node);
 
-lang_status_t put_node_value          (int         type,
-                                       int         val,
+lang_status_t put_node_value          (lang_ctx_t* ctx,
+                                       int         type,
                                        value_t*    node_value);
 
 lang_status_t read_name_table         (lang_ctx_t* ctx);

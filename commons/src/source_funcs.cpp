@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <inttypes.h>
 #include "lang.h"
 #include "custom_assert.h"
 #include "graph_dump.h"
@@ -31,7 +32,13 @@ lang_status_t src_node(lang_ctx_t* ctx, node_t* node)
     {
         case NUMBER:
         {
-            _PUT("%d", node->value.number);
+            _PUT("%" PRId64, node->value.number);
+            break;
+        }
+
+        case STRING:
+        {
+            _PUT("\"%s\"", node->value.string);
             break;
         }
 
