@@ -1,8 +1,446 @@
-~ fdecl launch_localhost_client_3000()
+~ fdecl lang_client_connect_cdecl(: var ip : var port)
+~ fdecl lang_client_alive_cdecl()
+~ fdecl lang_client_set_dead_cdecl()
+~ fdecl lang_client_read_next_cdecl()
+~ fdecl lang_client_close_cdecl()
+
+~ fdecl lang_pan_is_person_cdecl()
+~ fdecl lang_pan_is_srv_cdecl()
+~ fdecl lang_pan_len_cdecl()
+~ fdecl lang_pan_type_is_tick_cdecl()
+~ fdecl lang_pan_type_is_hp_cdecl()
+~ fdecl lang_pan_type_is_at_cdecl()
+~ fdecl lang_pan_type_is_sees_cdecl()
+~ fdecl lang_pan_type_is_wall_cdecl()
+~ fdecl lang_pan_type_is_has_pref_cdecl()
+~ fdecl lang_pan_type_is_name_cdecl()
+~ fdecl lang_pan_type_is_id_cdecl()
+~ fdecl lang_pan_type_is_level_cdecl()
+~ fdecl lang_pan_type_is_r_set_lvl_cdecl()
+~ fdecl lang_pan_payload_i32_cdecl(: var offset)
+~ fdecl lang_pan_payload_u32_cdecl(: var offset)
+~ fdecl lang_pan_payload_bool_cdecl(: var offset)
+
+~ fdecl lang_person_move_cdecl(: var dx : var dy)
+~ fdecl lang_person_attack_cdecl(: var target)
+~ fdecl lang_random_mod_cdecl(: var max)
+
+~ fdecl equal_cdecl(: var lhs : var rhs)
+~ fdecl not_equal_cdecl(: var lhs : var rhs)
+~ fdecl smaller_cdecl(: var lhs : var rhs)
+~ fdecl bigger_cdecl(: var lhs : var rhs)
+~ fdecl smaller_or_eq_cdecl(: var lhs : var rhs)
+~ fdecl bigger_or_eq_cdecl(: var lhs : var rhs)
+
+~ var have_pos = 0
+~ var hp = 1
+~ var self_x = 0
+~ var self_y = 0
+~ var visible_count = 0
+~ var wall_count = 0
+
+~ arr visible_id[256]
+~ arr visible_x[256]
+~ arr visible_y[256]
+~ arr walls_x[8192]
+~ arr walls_y[8192]
+~ arr attackable_id[256]
+~ arr attackable_x[256]
+~ arr attackable_y[256]
+~ arr legal_dx[4]
+~ arr legal_dy[4]
+
+~ func iabs(: var v)
+{
+    ~ if (call smaller_cdecl(: v : 0)) {
+        ~ return 0 - v
+    }
+
+    ~ return v
+}
+
+~ func sign(: var v)
+{
+    ~ if (call bigger_cdecl(: v : 0)) {
+        ~ return 1
+    }
+    ~ if (call smaller_cdecl(: v : 0)) {
+        ~ return 0 - 1
+    }
+
+    ~ return 0
+}
+
+~ func max2(: var lhs : var rhs)
+{
+    ~ if (call bigger_cdecl(: lhs : rhs)) {
+        ~ return lhs
+    }
+
+    ~ return rhs
+}
+
+~ func long_dist(: var ax : var ay : var bx : var by)
+{
+    ~ var dx = call iabs(: ax - bx)
+    ~ var dy = call iabs(: ay - by)
+    ~ return call max2(: dx : dy)
+}
+
+~ func wall_known(: var x : var y)
+{
+    ~ var i = 0
+    ~ while (call smaller_cdecl(: i : wall_count)) {
+        ~ if (call equal_cdecl(: walls_x[i] : x)) {
+            ~ if (call equal_cdecl(: walls_y[i] : y)) {
+                ~ return 1
+            }
+        }
+        ~ i = i + 1
+    }
+
+    ~ return 0
+}
+
+~ func add_wall(: var x : var y)
+{
+    ~ if (call wall_known(: x : y)) {
+        ~ return 0
+    }
+
+    ~ if (call smaller_cdecl(: wall_count : 8192)) {
+        ~ walls_x[wall_count] = x
+        ~ walls_y[wall_count] = y
+        ~ wall_count = wall_count + 1
+    }
+
+    ~ return 0
+}
+
+~ func add_visible(: var id : var x : var y)
+{
+    ~ var i = 0
+    ~ while (call smaller_cdecl(: i : visible_count)) {
+        ~ if (call equal_cdecl(: visible_id[i] : id)) {
+            ~ visible_x[i] = x
+            ~ visible_y[i] = y
+            ~ return 0
+        }
+        ~ i = i + 1
+    }
+
+    ~ if (call smaller_cdecl(: visible_count : 256)) {
+        ~ visible_id[visible_count] = id
+        ~ visible_x[visible_count] = x
+        ~ visible_y[visible_count] = y
+        ~ visible_count = visible_count + 1
+    }
+
+    ~ return 0
+}
+
+~ func clear_tick_state()
+{
+    ~ visible_count = 0
+    ~ return 0
+}
+
+~ func try_move(: var dx : var dy)
+{
+    ~ if (call equal_cdecl(: dx : 0)) {
+        ~ if (call equal_cdecl(: dy : 0)) {
+            ~ return 0
+        }
+    }
+
+    ~ var nx = self_x + dx
+    ~ var ny = self_y + dy
+
+    ~ if (have_pos) {
+        ~ if (call wall_known(: nx : ny)) {
+            ~ return 0
+        }
+    }
+
+    ~ if (call not_equal_cdecl(: call lang_person_move_cdecl(: dx : dy) : 0)) {
+        ~ call lang_client_set_dead_cdecl()
+        ~ return 1
+    }
+
+    ~ return 1
+}
+
+~ func attack_if_possible()
+{
+    ~ var attackable_count = 0
+
+    ~ if (have_pos) {
+        ~ var i = 0
+        ~ while (call smaller_cdecl(: i : visible_count)) {
+            ~ var dx = call iabs(: visible_x[i] - self_x)
+            ~ var dy = call iabs(: visible_y[i] - self_y)
+            ~ if (call smaller_or_eq_cdecl(: dx : 1)) {
+                ~ if (call smaller_or_eq_cdecl(: dy : 1)) {
+                    ~ attackable_id[attackable_count] = visible_id[i]
+                    ~ attackable_x[attackable_count] = visible_x[i]
+                    ~ attackable_y[attackable_count] = visible_y[i]
+                    ~ attackable_count = attackable_count + 1
+                }
+            }
+            ~ i = i + 1
+        }
+    }
+
+    ~ if (call bigger_cdecl(: attackable_count : 0)) {
+        ~ var idx = call lang_random_mod_cdecl(: attackable_count)
+        ~ var target = attackable_id[idx]
+        ~ if (call not_equal_cdecl(: call lang_person_attack_cdecl(: target) : 0)) {
+            ~ call lang_client_set_dead_cdecl()
+        }
+        ~ call clear_tick_state()
+        ~ return 1
+    }
+
+    ~ return 0
+}
+
+~ func chase_if_possible()
+{
+    ~ if (have_pos) {
+        ~ if (call bigger_cdecl(: visible_count : 0)) {
+            ~ var best = 0
+            ~ var best_dist = call long_dist(: self_x : self_y : visible_x[0] : visible_y[0])
+            ~ var i = 1
+            ~ while (call smaller_cdecl(: i : visible_count)) {
+                ~ var d = call long_dist(: self_x : self_y : visible_x[i] : visible_y[i])
+                ~ if (call smaller_cdecl(: d : best_dist)) {
+                    ~ best = i
+                    ~ best_dist = d
+                }
+                ~ i = i + 1
+            }
+
+            ~ var sx = call sign(: visible_x[best] - self_x)
+            ~ var sy = call sign(: visible_y[best] - self_y)
+
+            ~ if (call try_move(: sx : sy)) {
+                ~ call clear_tick_state()
+                ~ return 1
+            }
+
+            ~ var abs_x = call iabs(: visible_x[best] - self_x)
+            ~ var abs_y = call iabs(: visible_y[best] - self_y)
+
+            ~ if (call bigger_or_eq_cdecl(: abs_x : abs_y)) {
+                ~ if (call try_move(: sx : 0)) {
+                    ~ call clear_tick_state()
+                    ~ return 1
+                }
+                ~ if (call try_move(: 0 : sy)) {
+                    ~ call clear_tick_state()
+                    ~ return 1
+                }
+            }
+
+            ~ if (call smaller_cdecl(: abs_x : abs_y)) {
+                ~ if (call try_move(: 0 : sy)) {
+                    ~ call clear_tick_state()
+                    ~ return 1
+                }
+                ~ if (call try_move(: sx : 0)) {
+                    ~ call clear_tick_state()
+                    ~ return 1
+                }
+            }
+        }
+    }
+
+    ~ return 0
+}
+
+~ func random_move()
+{
+    ~ legal_dx[0] = 1
+    ~ legal_dy[0] = 0
+    ~ legal_dx[1] = 0 - 1
+    ~ legal_dy[1] = 0
+    ~ legal_dx[2] = 0
+    ~ legal_dy[2] = 1
+    ~ legal_dx[3] = 0
+    ~ legal_dy[3] = 0 - 1
+
+    ~ var legal_count = 0
+    ~ var i = 0
+    ~ while (call smaller_cdecl(: i : 4)) {
+        ~ var dx = legal_dx[i]
+        ~ var dy = legal_dy[i]
+        ~ var nx = self_x + dx
+        ~ var ny = self_y + dy
+        ~ var ok = 1
+
+        ~ if (have_pos) {
+            ~ if (call wall_known(: nx : ny)) {
+                ~ ok = 0
+            }
+        }
+
+        ~ if (ok) {
+            ~ legal_dx[legal_count] = dx
+            ~ legal_dy[legal_count] = dy
+            ~ legal_count = legal_count + 1
+        }
+
+        ~ i = i + 1
+    }
+
+    ~ if (call equal_cdecl(: legal_count : 0)) {
+        ~ call clear_tick_state()
+        ~ return 0
+    }
+
+    ~ var idx = call lang_random_mod_cdecl(: legal_count)
+    ~ if (call not_equal_cdecl(: call lang_person_move_cdecl(: legal_dx[idx] : legal_dy[idx]) : 0)) {
+        ~ call lang_client_set_dead_cdecl()
+    }
+    ~ call clear_tick_state()
+
+    ~ return 0
+}
+
+~ func do_random_action()
+{
+    ~ if (call attack_if_possible()) {
+        ~ return 0
+    }
+
+    ~ if (call chase_if_possible()) {
+        ~ return 0
+    }
+
+    ~ call random_move()
+    ~ return 0
+}
+
+~ func handle_person()
+{
+    ~ var len = call lang_pan_len_cdecl()
+
+    ~ if (call lang_pan_type_is_tick_cdecl()) {
+        ~ if (call equal_cdecl(: len : 0)) {
+            ~ call do_random_action()
+        }
+        ~ return 0
+    }
+
+    ~ if (call lang_pan_type_is_hp_cdecl()) {
+        ~ if (call equal_cdecl(: len : 4)) {
+            ~ hp = call lang_pan_payload_i32_cdecl(: 0)
+            ~ if (call smaller_or_eq_cdecl(: hp : 0)) {
+                ~ call lang_client_set_dead_cdecl()
+            }
+        }
+        ~ return 0
+    }
+
+    ~ if (call lang_pan_type_is_at_cdecl()) {
+        ~ if (call equal_cdecl(: len : 8)) {
+            ~ self_x = call lang_pan_payload_i32_cdecl(: 0)
+            ~ self_y = call lang_pan_payload_i32_cdecl(: 4)
+            ~ have_pos = 1
+        }
+        ~ return 0
+    }
+
+    ~ if (call lang_pan_type_is_sees_cdecl()) {
+        ~ if (call equal_cdecl(: len : 12)) {
+            ~ call add_visible(: call lang_pan_payload_u32_cdecl(: 8) : call lang_pan_payload_i32_cdecl(: 0) : call lang_pan_payload_i32_cdecl(: 4))
+        }
+        ~ return 0
+    }
+
+    ~ if (call lang_pan_type_is_wall_cdecl()) {
+        ~ if (call equal_cdecl(: len : 8)) {
+            ~ call add_wall(: call lang_pan_payload_i32_cdecl(: 0) : call lang_pan_payload_i32_cdecl(: 4))
+        }
+        ~ return 0
+    }
+
+    ~ return 0
+}
+
+~ func handle_srv()
+{
+    ~ var len = call lang_pan_len_cdecl()
+
+    ~ if (call lang_pan_type_is_has_pref_cdecl()) {
+        ~ if (call not_equal_cdecl(: len : 8)) {
+            ~ return 0
+        }
+        ~ return 0
+    }
+
+    ~ if (call lang_pan_type_is_name_cdecl()) {
+        ~ return 0
+    }
+
+    ~ if (call lang_pan_type_is_id_cdecl()) {
+        ~ if (call equal_cdecl(: len : 4)) {
+            ~ var client_id = call lang_pan_payload_u32_cdecl(: 0)
+        }
+        ~ return 0
+    }
+
+    ~ if (call lang_pan_type_is_level_cdecl()) {
+        ~ if (call not_equal_cdecl(: len : 8)) {
+            ~ return 0
+        }
+        ~ return 0
+    }
+
+    ~ if (call lang_pan_type_is_r_set_lvl_cdecl()) {
+        ~ if (call equal_cdecl(: len : 5)) {
+            ~ var msg = call lang_pan_payload_u32_cdecl(: 0)
+            ~ var ok = call lang_pan_payload_bool_cdecl(: 4)
+        }
+        ~ return 0
+    }
+
+    ~ return 0
+}
 
 ~ func main()
 {
-    ~ call launch_localhost_client_3000()
+    ~ var rc = call lang_client_connect_cdecl(: "localhost" : "3000")
+    ~ if (call not_equal_cdecl(: rc : 0)) {
+        ~ return 1
+    }
 
+    ~ while (call lang_client_alive_cdecl()) {
+        ~ rc = call lang_client_read_next_cdecl()
+
+        ~ if (call equal_cdecl(: rc : 2)) {
+            ~ call lang_client_close_cdecl()
+            ~ return 0
+        }
+
+        ~ if (call not_equal_cdecl(: rc : 0)) {
+            ~ if (call not_equal_cdecl(: rc : 1)) {
+                ~ call lang_client_close_cdecl()
+                ~ return 1
+            }
+        }
+
+        ~ if (call equal_cdecl(: rc : 0)) {
+            ~ if (call lang_pan_is_person_cdecl()) {
+                ~ call handle_person()
+            }
+
+            ~ if (call lang_pan_is_srv_cdecl()) {
+                ~ call handle_srv()
+            }
+        }
+    }
+
+    ~ call lang_client_close_cdecl()
     ~ return 0
 }

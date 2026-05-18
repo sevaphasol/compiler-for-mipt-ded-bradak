@@ -1,3 +1,5 @@
+#include <inttypes.h>
+
 #include "custom_assert.h"
 #include "ir.h"
 #include "ir_operands.h"
@@ -68,7 +70,7 @@ lang_status_t operand_ir_to_asm(lang_ctx_t* ctx, ir_opd_t* opd)
             break;
         }
         case IR_OPD_IMMEDIATE: {
-            RAW_ASM("%d", opd->value.imm);
+            RAW_ASM("%" PRId64, opd->value.imm);
             break;
         }
         case IR_OPD_STFRAME_MEMORY: {

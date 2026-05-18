@@ -36,6 +36,8 @@ lang_status_t build_modrm_and_imm_mi(lang_ctx_t* ctx,
                                      uint8_t      modrm_reg);
 bool is_memory_operand(ir_opd_type_t type);
 ir_instr_type_t get_ir_instr_type(ir_instr_t* ir_instr);
+bool imm_fits_i32(int64_t imm);
+void warn_imm64_not_implemented(const char* instr_name, int64_t imm);
 
 //——————————————————————————————————————————————————————————————————————————————
 

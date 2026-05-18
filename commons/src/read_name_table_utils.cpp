@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
+#include <inttypes.h>
 #include "lang.h"
 #include "custom_assert.h"
 #include "graph_dump.h"
@@ -139,10 +140,10 @@ lang_status_t read_tree(lang_ctx_t* ctx, node_t** node)
 
 //——————————————————————————————————————————————————————————————————————————————
 
-lang_status_t put_integer_node_value(lang_ctx_t* ctx, int* val)
+lang_status_t put_integer_node_value(lang_ctx_t* ctx, number_t* val)
 {
 	int nchars = 0;
-	sscanf(ctx->code, " %d%n", val, &nchars);
+	sscanf(ctx->code, " %" SCNd64 "%n", val, &nchars);
 	ctx->code += nchars;
 	return LANG_SUCCESS;
 }
@@ -179,19 +180,19 @@ lang_status_t put_node_value(lang_ctx_t* ctx, int type, value_t* node_value)
 
     switch(type) {
         case OPERATOR: {
-			int val = 0;
+			number_t val = 0;
 			put_integer_node_value(ctx, &val );
 			node_value->operator_code = (operator_code_t)val;
             break;
         }
         case IDENTIFIER: {
-			int val = 0;
+			number_t val = 0;
 			put_integer_node_value(ctx,&val );
 			node_value->id_index = (size_t)val;
             break;
         }
         case NUMBER: {
-			int val = 0;
+			number_t val = 0;
 			put_integer_node_value(ctx,&val );
 			node_value->number = val;
             break;
@@ -227,7 +228,7 @@ lang_status_t print_node_value(FILE* fp, node_t* node)
             break;
         }
         case NUMBER: {
-            fprintf(fp, "%d ", node->value.number);
+            fprintf(fp, "%" PRId64 " ", node->value.number);
             break;
         }
         case STRING: {

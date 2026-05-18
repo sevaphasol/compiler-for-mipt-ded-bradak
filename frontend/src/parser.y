@@ -36,7 +36,7 @@ static void ast_set_parents(node_t* node, node_t* parent);
 %define parse.error verbose
 
 %union {
-    int num;
+    int64_t num;
     char* str;
     node_t* node;
 }

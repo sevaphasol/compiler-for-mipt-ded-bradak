@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
+
 #include "encode_utils.h"
 #include "custom_assert.h"
 #include "ir_operands.h"
@@ -14,6 +18,24 @@ static uint32_t get_disp_rel_base(lang_ctx_t* ctx, bin_instr_t* bin_instr);
 bool reg_expand(reg_t reg)
 {
     return reg >= REG_R8;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+bool imm_fits_i32(int64_t imm)
+{
+    return imm >= INT32_MIN && imm <= INT32_MAX;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+void warn_imm64_not_implemented(const char* instr_name, int64_t imm)
+{
+    fprintf(stderr,
+            "warning: sorry, not implemented: %s with imm64 value %" PRId64
+            " does not fit imm32\n",
+            instr_name ? instr_name : "instruction",
+            imm);
 }
 
 //——————————————————————————————————————————————————————————————————————————————
@@ -185,6 +207,10 @@ lang_status_t build_modrm_and_imm_ri(bin_instr_t* bin_instr,
     reg_t dst    = ir_instr->opd1.value.reg;
     number_t imm = ir_instr->opd2.value.imm;
 
+    if (!imm_fits_i32(imm)) {
+        warn_imm64_not_implemented("reg, imm32 instruction", imm);
+    }
+
     bin_instr->modrm = build_modrm(X86_64_MOD_RI, modrm_reg, trim_reg(dst));
 
     bin_instr->info.has_modrm   = true;
@@ -218,6 +244,10 @@ lang_status_t build_modrm_and_imm_mi(lang_ctx_t* ctx,
     ASSERT(ctx);
     ASSERT(bin_instr);
     ASSERT(ir_instr);
+
+    if (!imm_fits_i32(ir_instr->opd2.value.imm)) {
+        warn_imm64_not_implemented("mem, imm32 instruction", ir_instr->opd2.value.imm);
+    }
 
     bin_instr->info.has_imm     = true;
     bin_instr->info.imm_size    = 4;

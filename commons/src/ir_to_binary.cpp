@@ -419,6 +419,10 @@ lang_status_t encode_push_imm(lang_ctx_t*  ctx,
     ASSERT(ir_instr);
     ASSERT(bin_instr);
 
+    if (!imm_fits_i32(ir_instr->opd1.value.imm)) {
+        warn_imm64_not_implemented("push imm32", ir_instr->opd1.value.imm);
+    }
+
     bin_instr->opc           = X86_64_PUSH_I_OPCODE;
     bin_instr->info.has_imm  = true;
     bin_instr->info.imm_size = 4;

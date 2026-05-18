@@ -114,8 +114,8 @@ bool ir_instr_is_trivial_arithmetic(ir_instr_t* ir_instr)
     bool opd1_is_num = ir_instr->opd1.type == IR_OPD_IMMEDIATE;
     bool opd2_is_num = ir_instr->opd2.type == IR_OPD_IMMEDIATE;
 
-    int32_t opd1_num = ir_instr->opd1.value.imm;
-    int32_t opd2_num = ir_instr->opd2.value.imm;
+    number_t opd1_num = ir_instr->opd1.value.imm;
+    number_t opd2_num = ir_instr->opd2.value.imm;
 
     bool case1 = (opc == IR_OPC_ADD || opc == IR_OPC_SUB) &&
                  ((opd1_is_num && opd1_num == 0) ||

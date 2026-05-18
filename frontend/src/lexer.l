@@ -1,6 +1,8 @@
 %{
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include "lang.h"
 #include "dsl.h"
 #include "parser.hpp"
@@ -76,7 +78,7 @@ newline     [\n]
 "]"              { return TK_R_SQUARE; }
 
 {number}         { 
-    yylval.num = atoi(yytext); 
+    yylval.num = strtoimax(yytext, NULL, 10);
     return TK_NUMBER; 
 }
 {string}         {
