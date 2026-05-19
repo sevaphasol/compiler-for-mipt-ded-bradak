@@ -16,6 +16,7 @@ __global_init:
         mov [rel __global_data + 40], 0
         mov [rel __global_data + 145520], 0
         mov [rel __global_data + 145528], 0
+        mov [rel __global_data + 145536], 0
         ret
 iabs:
         push qword rbp
@@ -389,7 +390,7 @@ try_move:
         push qword 0
         push qword [rbp + 24]
         push qword [rbp + 16]
-        lea r12, [rel __strings + "archer"]
+        lea r12, [rel __strings + "bomber"]
         push qword r12
         call lang_move_cdecl
         add rsp, 24
@@ -450,7 +451,7 @@ get_closest_one:
         call iabs
         add rsp, 8
         mov [rbp - 32], rax
-        push qword 4
+        push qword 36
         push qword [rbp - 24]
         mov r11, [rbp - 24]
         pop qword r10
@@ -464,41 +465,9 @@ get_closest_one:
         pop qword r10
         add r10, r11
         push qword r10
-        call smaller_cdecl
+        call smaller_or_eq_cdecl
         add rsp, 16
-        push qword rax
-        push qword 2
-        push qword [rbp - 24]
-        call equal_cdecl
-        add rsp, 16
-        push qword rax
-        push qword 0
-        push qword [rbp - 32]
-        call equal_cdecl
-        add rsp, 16
-        mov r11, rax
-        pop qword r10
-        imul r10, r11
-        mov r11, r10
-        pop qword r10
-        add r10, r11
-        push qword r10
-        push qword 0
-        push qword [rbp - 24]
-        call equal_cdecl
-        add rsp, 16
-        push qword rax
-        push qword 2
-        push qword [rbp - 32]
-        call equal_cdecl
-        add rsp, 16
-        mov r11, rax
-        pop qword r10
-        imul r10, r11
-        mov r11, r10
-        pop qword r10
-        add r10, r11
-        mov rax, r10
+        mov rax, rax
         test rax, rax
         je .L32
         mov rax, [rbp - 16]
@@ -529,16 +498,13 @@ attack_if_possible:
         push qword rbp
         mov rbp, rsp
         sub rsp, 8
-        push qword 0
-        push qword [rel __global_data + 145528]
-        call equal_cdecl
-        add rsp, 16
-        mov rax, rax
+        mov rax, [rel __global_data + 145536]
         test rax, rax
         je .L34
         mov rax, 0
         jmp .L33
 .L34:
+        mov [rel __global_data + 145536], 1
         call get_closest_one
         add rsp, 0
         mov [rbp - 8], rax
@@ -552,35 +518,21 @@ attack_if_possible:
         mov rax, 0
         jmp .L33
 .L35:
-        push qword [rel __global_data + 145528]
-        mov r11, 1
-        pop qword r10
-        sub r10, r11
-        mov [rel __global_data + 145528], r10
         push qword 0
-        mov r13, [rbp - 8]
-        add r13, r13
-        add r13, r13
-        add r13, r13
-        lea rbx, [rel __global_data + 48]
-        add rbx, r13
-        push qword [rbx + 0]
-        lea r12, [rel __strings + "shoot"]
+        lea r12, [rel __strings + "bomber"]
         push qword r12
-        lea r12, [rel __strings + "archer"]
-        push qword r12
-        call lang_pan_send_use_cdecl
-        add rsp, 24
+        call lang_pan_send_bomb_cdecl
+        add rsp, 8
         push qword rax
-        call equal_cdecl
+        call not_equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
         je .L36
-        mov rax, 1
+        mov rax, 0
         jmp .L33
 .L36:
-        mov rax, 0
+        mov rax, 1
         jmp .L33
         mov rax, 0
 .L33:
@@ -978,7 +930,7 @@ random_move:
         lea rbx, [rel __global_data + 143408]
         add rbx, r13
         push qword [rbx + 0]
-        lea r12, [rel __strings + "archer"]
+        lea r12, [rel __strings + "bomber"]
         push qword r12
         call lang_move_cdecl
         add rsp, 24
@@ -1014,6 +966,7 @@ do_random_action:
         mov rax, 0
         jmp .L57
 .L58:
+        mov [rel __global_data + 145536], 0
         call chase_if_possible
         add rsp, 0
         mov rax, rax
@@ -1316,7 +1269,7 @@ main:
         push qword rbp
         mov rbp, rsp
         sub rsp, 8
-        lea r12, [rel __strings + "archer"]
+        lea r12, [rel __strings + "bomber"]
         push qword r12
         lea r12, [rel __strings + "3000"]
         push qword r12
@@ -1335,7 +1288,7 @@ main:
         mov rax, 1
         jmp .L82
 .L83:
-        lea r12, [rel __strings + "archer"]
+        lea r12, [rel __strings + "bomber"]
         push qword r12
         call lang_choose_role_cdecl
         add rsp, 8
@@ -1383,7 +1336,7 @@ main:
         mov rax, rax
         test rax, rax
         je .L89
-        lea r12, [rel __strings + "archer"]
+        lea r12, [rel __strings + "bomber"]
         push qword r12
         call lang_pan_prefix_is_cdecl
         add rsp, 8
