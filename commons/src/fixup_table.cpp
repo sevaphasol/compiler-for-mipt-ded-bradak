@@ -107,3 +107,41 @@ lang_status_t fixup_table_apply(fixup_table_t* fixup_table,
 }
 
 //——————————————————————————————————————————————————————————————————————————————
+
+lang_status_t fixup_table_apply_and_collect_external(fixup_table_t* fixup_table,
+                                                     label_table_t* label_table,
+                                                     buffer_t*      code_buf,
+                                                     fixup_table_t* external_fixups)
+{
+    ASSERT(fixup_table);
+    ASSERT(label_table);
+    ASSERT(code_buf);
+    ASSERT(external_fixups);
+
+    size_t fixup_table_size = fixup_table->size;
+
+    for (size_t i = 0; i < fixup_table_size; i++) {
+        fixup_entry_t* entry = &fixup_table->entries[i];
+        label_value_t  value =  entry->label.value;
+
+        uint32_t target_addr = 0;
+
+        if (entry->label.is_global) {
+            if (label_table_find_global(label_table, value.global_name, &target_addr) != LANG_SUCCESS) {
+                add_fixup(external_fixups, value.global_name, 0, entry->offset, entry->rel_base);
+                continue;
+            }
+        } else {
+            VERIFY(label_table_find_local(label_table, value.local_number, &target_addr),
+                   return LANG_ERROR);
+        }
+
+        int32_t rel = (int32_t) target_addr - (int32_t) entry->rel_base;
+
+        memcpy(code_buf->data + entry->offset, &rel, 4);
+    }
+
+    return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————

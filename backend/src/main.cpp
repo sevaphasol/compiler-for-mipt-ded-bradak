@@ -12,7 +12,6 @@
 #include "fixup_table.h"
 #include "elf_builder.h"
 #include "buffer.h"
-#include "lib_call_funcs.h"
 #include "read_name_table_utils.h"
 #include "encode_utils.h"
 #include "color_print.h"
@@ -31,6 +30,8 @@ static lang_status_t make_asm   (lang_ctx_t* ctx);
 static lang_status_t make_binary(lang_ctx_t* ctx);
 static lang_status_t fixup_global_data(lang_ctx_t* ctx);
 static lang_status_t fixup_strings    (lang_ctx_t* ctx);
+static lang_status_t fail_on_unresolved_symbols(lang_ctx_t* ctx);
+static lang_status_t write_splobj     (lang_ctx_t* ctx, const char* file_name);
 
 extern lang_status_t optimize_ir(lang_ctx_t* ctx);
 
@@ -77,10 +78,12 @@ lang_status_t compile(lang_ctx_t* ctx)
 
     VERIFY(make_binary(ctx), return LANG_ERROR);
 
-    VERIFY(create_elf_file(ctx->ap_ctx.output_file,
-                           ctx->bin_buf.data,
-                           ctx->bin_buf.size),
-           return LANG_ERROR);
+    if (!ctx->ap_ctx.emit_obj) {
+        VERIFY(create_elf_file(ctx->ap_ctx.output_file,
+                               ctx->bin_buf.data,
+                               ctx->bin_buf.size),
+               return LANG_ERROR);
+    }
 
     return LANG_SUCCESS;
 }
@@ -125,30 +128,119 @@ lang_status_t make_binary(lang_ctx_t* ctx)
 
     label_table_ctor    (&ctx->label_table,     TABLE_INIT_CAPACITY);
     fixup_table_ctor    (&ctx->fixups,          TABLE_INIT_CAPACITY);
+    fixup_table_ctor    (&ctx->external_fixups, TABLE_INIT_CAPACITY);
     fixup_table_ctor    (&ctx->global_data_fixups, TABLE_INIT_CAPACITY);
     fixup_table_ctor    (&ctx->string_fixups,   TABLE_INIT_CAPACITY);
-    lib_calls_table_ctor(&ctx->lib_calls_table, TABLE_INIT_CAPACITY);
-
-    stdlib_data_ctor    (&ctx->stdlib_data);
 
     ir_to_binary(ctx);
 
     buf_dtor(&ctx->ir_buf);
 
-    label_table_dtor(&ctx->label_table);
-    fixup_table_dtor(&ctx->fixups);
-
-    solve_lib_call_requests(ctx);
-
     fixup_global_data(ctx);
     fixup_strings(ctx);
 
-    lib_calls_table_dtor(&ctx->lib_calls_table);
-    stdlib_data_dtor(&ctx->stdlib_data);
+    if (ctx->ap_ctx.emit_obj) {
+        VERIFY(write_splobj(ctx, ctx->ap_ctx.output_file),
+               return LANG_ERROR);
+    } else {
+        VERIFY(fail_on_unresolved_symbols(ctx),
+               return LANG_ERROR);
+    }
+
+    label_table_dtor(&ctx->label_table);
+    fixup_table_dtor(&ctx->fixups);
     fixup_table_dtor(&ctx->global_data_fixups);
     fixup_table_dtor(&ctx->string_fixups);
+    fixup_table_dtor(&ctx->external_fixups);
 
     return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+static lang_status_t write_u32(FILE* fp, uint32_t value)
+{
+    return fwrite(&value, sizeof(value), 1, fp) == 1 ? LANG_SUCCESS : LANG_ERROR;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+static lang_status_t write_cstr(FILE* fp, const char* str)
+{
+    ASSERT(fp);
+    ASSERT(str);
+
+    size_t len = strlen(str) + 1;
+    return fwrite(str, sizeof(char), len, fp) == len ? LANG_SUCCESS : LANG_ERROR;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+static lang_status_t write_splobj(lang_ctx_t* ctx, const char* file_name)
+{
+    ASSERT(ctx);
+    ASSERT(file_name);
+
+    FILE* fp = fopen(file_name, "wb");
+    VERIFY(!fp, return LANG_FILE_OPEN_ERROR);
+
+    uint32_t n_symbols = 0;
+    for (size_t i = 0; i < ctx->label_table.size; i++) {
+        if (ctx->label_table.labels[i].is_global) {
+            n_symbols++;
+        }
+    }
+
+    uint32_t n_relocs = (uint32_t) ctx->external_fixups.size;
+    uint32_t code_size = (uint32_t) ctx->bin_buf.size;
+
+    VERIFY(fwrite("SPLO", sizeof(char), 4, fp) != 4, fclose(fp); return LANG_ERROR);
+    VERIFY(write_u32(fp, n_symbols), fclose(fp); return LANG_ERROR);
+    VERIFY(write_u32(fp, n_relocs), fclose(fp); return LANG_ERROR);
+    VERIFY(write_u32(fp, code_size), fclose(fp); return LANG_ERROR);
+
+    for (size_t i = 0; i < ctx->label_table.size; i++) {
+        label_t* label = &ctx->label_table.labels[i];
+        if (!label->is_global) {
+            continue;
+        }
+
+        VERIFY(write_cstr(fp, label->value.global_name), fclose(fp); return LANG_ERROR);
+        VERIFY(write_u32(fp, (uint32_t) label->address), fclose(fp); return LANG_ERROR);
+    }
+
+    for (size_t i = 0; i < ctx->external_fixups.size; i++) {
+        fixup_entry_t* entry = &ctx->external_fixups.entries[i];
+        VERIFY(write_cstr(fp, entry->label.value.global_name), fclose(fp); return LANG_ERROR);
+        VERIFY(write_u32(fp, entry->offset), fclose(fp); return LANG_ERROR);
+        VERIFY(write_u32(fp, entry->rel_base), fclose(fp); return LANG_ERROR);
+    }
+
+    VERIFY(fwrite(ctx->bin_buf.data, sizeof(uint8_t), ctx->bin_buf.size, fp) != ctx->bin_buf.size,
+           fclose(fp);
+           return LANG_ERROR);
+
+    fclose(fp);
+
+    return LANG_SUCCESS;
+}
+
+//——————————————————————————————————————————————————————————————————————————————
+
+static lang_status_t fail_on_unresolved_symbols(lang_ctx_t* ctx)
+{
+    ASSERT(ctx);
+
+    if (ctx->external_fixups.size == 0) {
+        return LANG_SUCCESS;
+    }
+
+    for (size_t i = 0; i < ctx->external_fixups.size; i++) {
+        fixup_entry_t* entry = &ctx->external_fixups.entries[i];
+        fprintf(stderr, "Undefined symbol: %s\n", entry->label.value.global_name);
+    }
+
+    return LANG_ERROR;
 }
 
 //——————————————————————————————————————————————————————————————————————————————

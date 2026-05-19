@@ -23,6 +23,7 @@ enum ap_status_t
 struct ap_ctx_t
 {
     bool        dump_source;
+	bool        emit_obj;
     const char* source_name;
     const char* input_file;
     const char* output_file;

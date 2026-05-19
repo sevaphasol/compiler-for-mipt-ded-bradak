@@ -6,7 +6,6 @@
 #include "buffer.h"
 #include "fixup_table.h"
 #include "encode_utils.h"
-#include "lib_call_funcs.h"
 
 //——————————————————————————————————————————————————————————————————————————————
 
@@ -67,7 +66,10 @@ lang_status_t ir_to_binary(lang_ctx_t* ctx)
         }
     }
 
-    fixup_table_apply(&ctx->fixups, &ctx->label_table, &ctx->bin_buf);
+    fixup_table_apply_and_collect_external(&ctx->fixups,
+                                           &ctx->label_table,
+                                           &ctx->bin_buf,
+                                           &ctx->external_fixups);
 
     return LANG_SUCCESS;
 }
@@ -525,11 +527,11 @@ lang_status_t encode_call(lang_ctx_t*  ctx,
     ASSERT(ir_instr);
     ASSERT(bin_instr);
 
-    if (ir_instr->opd1.type == IR_OPD_STDLIB_LABEL) {
+    if (ir_instr->opd1.type == IR_OPD_EXTERNAL_LABEL) {
         const char* name = ir_instr->opd1.value.global_label_name;
-        add_lib_call_request(&ctx->lib_calls_table,
-                         name,
-                         ctx->bin_buf.size + 1);
+        add_fixup(&ctx->fixups, name, 0,
+                  (uint32_t) (ctx->bin_buf.size + 1),
+                  (uint32_t) (ctx->bin_buf.size + 5));
 
         return encode_lib_func(ctx, ir_instr, bin_instr);
     }

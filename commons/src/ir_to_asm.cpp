@@ -106,7 +106,7 @@ lang_status_t operand_ir_to_asm(lang_ctx_t* ctx, ir_opd_t* opd)
             break;
         }
         
-        case IR_OPD_STDLIB_LABEL: {
+        case IR_OPD_EXTERNAL_LABEL: {
             RAW_ASM("%s", opd->value.global_label_name);
             break;
         }

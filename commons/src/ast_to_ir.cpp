@@ -30,18 +30,20 @@ lang_status_t build_ir(lang_ctx_t* ctx)
 
     lang_status_t status = LANG_SUCCESS;
 
-    EMIT(OP_GLOBAL_LABEL("_start"));
-    EMIT(OP_CALL(OPD_GLOBAL_LABEL("__global_init")));
-    EMIT(OP_CALL(OPD_GLOBAL_LABEL("main")));
-    EMIT(OP_MOV(OPD_REG(REG_RDI), OPD_REG(REG_RAX)));
-    EMIT(OP_MOV(OPD_REG(REG_RAX), OPD_IMM(60)));
-    EMIT(OP_SYSCALL);
+    if (!ctx->ap_ctx.emit_obj) {
+    	EMIT(OP_GLOBAL_LABEL("_start"));
+    	EMIT(OP_CALL(OPD_GLOBAL_LABEL("__global_init")));
+    	EMIT(OP_CALL(OPD_GLOBAL_LABEL("main")));
+    	EMIT(OP_MOV(OPD_REG(REG_RDI), OPD_REG(REG_RAX)));
+    	EMIT(OP_MOV(OPD_REG(REG_RAX), OPD_IMM(60)));
+    	EMIT(OP_SYSCALL);
 
-    EMIT(OP_GLOBAL_LABEL("__global_init"));
-    ctx->emitting_global_init = true;
-    emit_globals_inits(ctx, ctx->tree);
-    ctx->emitting_global_init = false;
-    EMIT(OP_RET);
+    	EMIT(OP_GLOBAL_LABEL("__global_init"));
+    	ctx->emitting_global_init = true;
+    	emit_globals_inits(ctx, ctx->tree);
+    	ctx->emitting_global_init = false;
+    	EMIT(OP_RET);
+    }
 
     return node_to_ir(ctx, ctx->tree);
 }
@@ -151,7 +153,7 @@ lang_status_t call_to_ir(lang_ctx_t* ctx, node_t* node)
     
     if (func_id.type == FUNC_DECL) {
         passing_func_params_to_ir(ctx, func_params, func_id.n_params);
-        EMIT(OP_CALL(OPD_STDLIB_LABEL(func_id.name)));
+        EMIT(OP_CALL(OPD_EXTERNAL_LABEL(func_id.name)));
 
         int32_t allocated_memory = VAR_SIZE * func_id.n_params;
 
