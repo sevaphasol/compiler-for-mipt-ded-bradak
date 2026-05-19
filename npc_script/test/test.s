@@ -1026,8 +1026,10 @@ handle_person:
         call lang_pan_len_cdecl
         add rsp, 0
         mov [rbp - 8], rax
-        call lang_pan_type_is_tick_cdecl
-        add rsp, 0
+        lea r12, [rel __strings + "tick"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
         mov rax, rax
         test rax, rax
         je .L61
@@ -1044,8 +1046,10 @@ handle_person:
         mov rax, 0
         jmp .L60
 .L61:
-        call lang_pan_type_is_hp_cdecl
-        add rsp, 0
+        lea r12, [rel __strings + "hp"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
         mov rax, rax
         test rax, rax
         je .L63
@@ -1074,8 +1078,10 @@ handle_person:
         mov rax, 0
         jmp .L60
 .L63:
-        call lang_pan_type_is_at_cdecl
-        add rsp, 0
+        lea r12, [rel __strings + "at"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
         mov rax, rax
         test rax, rax
         je .L66
@@ -1099,8 +1105,10 @@ handle_person:
         mov rax, 0
         jmp .L60
 .L66:
-        call lang_pan_type_is_sees_cdecl
-        add rsp, 0
+        lea r12, [rel __strings + "sees"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
         mov rax, rax
         test rax, rax
         je .L68
@@ -1129,8 +1137,10 @@ handle_person:
         mov rax, 0
         jmp .L60
 .L68:
-        call lang_pan_type_is_wall_cdecl
-        add rsp, 0
+        lea r12, [rel __strings + "wall"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
         mov rax, rax
         test rax, rax
         je .L70
@@ -1162,6 +1172,118 @@ handle_person:
         add rsp, 8
         pop qword rbp
         ret
+handle_srv:
+        push qword rbp
+        mov rbp, rsp
+        sub rsp, 32
+        call lang_pan_len_cdecl
+        add rsp, 0
+        mov [rbp - 8], rax
+        lea r12, [rel __strings + "hasPref"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
+        mov rax, rax
+        test rax, rax
+        je .L73
+        push qword 8
+        push qword [rbp - 8]
+        call not_equal_cdecl
+        add rsp, 16
+        mov rax, rax
+        test rax, rax
+        je .L74
+        mov rax, 0
+        jmp .L72
+.L74:
+        mov rax, 0
+        jmp .L72
+.L73:
+        lea r12, [rel __strings + "name"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
+        mov rax, rax
+        test rax, rax
+        je .L75
+        mov rax, 0
+        jmp .L72
+.L75:
+        lea r12, [rel __strings + "id"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
+        mov rax, rax
+        test rax, rax
+        je .L76
+        push qword 4
+        push qword [rbp - 8]
+        call equal_cdecl
+        add rsp, 16
+        mov rax, rax
+        test rax, rax
+        je .L77
+        push qword 0
+        call lang_pan_payload_u32_cdecl
+        add rsp, 8
+        mov [rbp - 16], rax
+.L77:
+        mov rax, 0
+        jmp .L72
+.L76:
+        lea r12, [rel __strings + "level"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
+        mov rax, rax
+        test rax, rax
+        je .L78
+        push qword 8
+        push qword [rbp - 8]
+        call not_equal_cdecl
+        add rsp, 16
+        mov rax, rax
+        test rax, rax
+        je .L79
+        mov rax, 0
+        jmp .L72
+.L79:
+        mov rax, 0
+        jmp .L72
+.L78:
+        lea r12, [rel __strings + "r.setLvl"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
+        mov rax, rax
+        test rax, rax
+        je .L80
+        push qword 5
+        push qword [rbp - 8]
+        call equal_cdecl
+        add rsp, 16
+        mov rax, rax
+        test rax, rax
+        je .L81
+        push qword 0
+        call lang_pan_payload_u32_cdecl
+        add rsp, 8
+        mov [rbp - 24], rax
+        push qword 4
+        call lang_pan_payload_bool_cdecl
+        add rsp, 8
+        mov [rbp - 32], rax
+.L81:
+        mov rax, 0
+        jmp .L72
+.L80:
+        mov rax, 0
+        jmp .L72
+        mov rax, 0
+.L72:
+        add rsp, 32
+        pop qword rbp
+        ret
 main:
         push qword rbp
         mov rbp, rsp
@@ -1179,12 +1301,16 @@ main:
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L73
+        je .L83
         mov rax, 1
-        jmp .L72
-.L73:
-        jmp .L74
-.L75:
+        jmp .L82
+.L83:
+        lea r12, [rel __strings + "person"]
+        push qword r12
+        call lang_choose_role_cdecl
+        add rsp, 8
+        jmp .L84
+.L85:
         call lang_client_read_next_cdecl
         add rsp, 0
         mov [rbp - 8], rax
@@ -1194,60 +1320,72 @@ main:
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L76
+        je .L86
         call lang_client_close_cdecl
         add rsp, 0
         mov rax, 0
-        jmp .L72
-.L76:
+        jmp .L82
+.L86:
         push qword 0
         push qword [rbp - 8]
         call not_equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L77
+        je .L87
         push qword 1
         push qword [rbp - 8]
         call not_equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L78
+        je .L88
         call lang_client_close_cdecl
         add rsp, 0
         mov rax, 1
-        jmp .L72
-.L78:
-.L77:
+        jmp .L82
+.L88:
+.L87:
         push qword 0
         push qword [rbp - 8]
         call equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L79
-        call lang_pan_is_person_cdecl
-        add rsp, 0
+        je .L89
+        lea r12, [rel __strings + "person"]
+        push qword r12
+        call lang_pan_prefix_is_cdecl
+        add rsp, 8
         mov rax, rax
         test rax, rax
-        je .L80
+        je .L90
         call handle_person
         add rsp, 0
-.L80:
-.L79:
-.L74:
+.L90:
+        lea r12, [rel __strings + "srv"]
+        push qword r12
+        call lang_pan_prefix_is_cdecl
+        add rsp, 8
+        mov rax, rax
+        test rax, rax
+        je .L91
+        call handle_srv
+        add rsp, 0
+.L91:
+.L89:
+.L84:
         call lang_client_alive_cdecl
         add rsp, 0
         mov rax, rax
         test rax, rax
-        jne .L75
+        jne .L85
         call lang_client_close_cdecl
         add rsp, 0
         mov rax, 0
-        jmp .L72
+        jmp .L82
         mov rax, 0
-.L72:
+.L82:
         add rsp, 8
         pop qword rbp
         ret

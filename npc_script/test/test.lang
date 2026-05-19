@@ -4,19 +4,7 @@
 ~ fdecl lang_client_read_next_cdecl()
 ~ fdecl lang_client_close_cdecl()
 
-~ fdecl lang_pan_is_person_cdecl()
-~ fdecl lang_pan_is_srv_cdecl()
 ~ fdecl lang_pan_len_cdecl()
-~ fdecl lang_pan_type_is_tick_cdecl()
-~ fdecl lang_pan_type_is_hp_cdecl()
-~ fdecl lang_pan_type_is_at_cdecl()
-~ fdecl lang_pan_type_is_sees_cdecl()
-~ fdecl lang_pan_type_is_wall_cdecl()
-~ fdecl lang_pan_type_is_has_pref_cdecl()
-~ fdecl lang_pan_type_is_name_cdecl()
-~ fdecl lang_pan_type_is_id_cdecl()
-~ fdecl lang_pan_type_is_level_cdecl()
-~ fdecl lang_pan_type_is_r_set_lvl_cdecl()
 ~ fdecl lang_pan_payload_i32_cdecl(: var offset)
 ~ fdecl lang_pan_payload_u32_cdecl(: var offset)
 ~ fdecl lang_pan_payload_bool_cdecl(: var offset)
@@ -31,6 +19,10 @@
 ~ fdecl bigger_cdecl(: var lhs : var rhs)
 ~ fdecl smaller_or_eq_cdecl(: var lhs : var rhs)
 ~ fdecl bigger_or_eq_cdecl(: var lhs : var rhs)
+
+~ fdecl lang_choose_role_cdecl(: var role)
+~ fdecl lang_pan_prefix_is_cdecl(: var prefix)
+~ fdecl lang_pan_type_is_cdecl(: var type)
 
 ~ var have_pos = 0
 ~ var hp = 1
@@ -325,14 +317,14 @@
 {
     ~ var len = call lang_pan_len_cdecl()
 
-    ~ if (call lang_pan_type_is_tick_cdecl()) {
+    ~ if (call lang_pan_type_is_cdecl(: "tick")) {
         ~ if (call equal_cdecl(: len : 0)) {
             ~ call do_random_action()
         }
         ~ return 0
     }
 
-    ~ if (call lang_pan_type_is_hp_cdecl()) {
+    ~ if (call lang_pan_type_is_cdecl(: "hp")) {
         ~ if (call equal_cdecl(: len : 4)) {
             ~ hp = call lang_pan_payload_i32_cdecl(: 0)
             ~ if (call smaller_or_eq_cdecl(: hp : 0)) {
@@ -342,7 +334,7 @@
         ~ return 0
     }
 
-    ~ if (call lang_pan_type_is_at_cdecl()) {
+    ~ if (call lang_pan_type_is_cdecl(: "at")) {
         ~ if (call equal_cdecl(: len : 8)) {
             ~ self_x = call lang_pan_payload_i32_cdecl(: 0)
             ~ self_y = call lang_pan_payload_i32_cdecl(: 4)
@@ -351,14 +343,14 @@
         ~ return 0
     }
 
-    ~ if (call lang_pan_type_is_sees_cdecl()) {
+    ~ if (call lang_pan_type_is_cdecl(: "sees")) {
         ~ if (call equal_cdecl(: len : 12)) {
             ~ call add_visible(: call lang_pan_payload_u32_cdecl(: 8) : call lang_pan_payload_i32_cdecl(: 0) : call lang_pan_payload_i32_cdecl(: 4))
         }
         ~ return 0
     }
 
-    ~ if (call lang_pan_type_is_wall_cdecl()) {
+    ~ if (call lang_pan_type_is_cdecl(: "wall")) {
         ~ if (call equal_cdecl(: len : 8)) {
             ~ call add_wall(: call lang_pan_payload_i32_cdecl(: 0) : call lang_pan_payload_i32_cdecl(: 4))
         }
@@ -372,32 +364,32 @@
 {
     ~ var len = call lang_pan_len_cdecl()
 
-    ~ if (call lang_pan_type_is_has_pref_cdecl()) {
+    ~ if (call lang_pan_type_is_cdecl(: "hasPref")) {
         ~ if (call not_equal_cdecl(: len : 8)) {
             ~ return 0
         }
         ~ return 0
     }
 
-    ~ if (call lang_pan_type_is_name_cdecl()) {
+    ~ if (call lang_pan_type_is_cdecl(: "name")) {
         ~ return 0
     }
 
-    ~ if (call lang_pan_type_is_id_cdecl()) {
+    ~ if (call lang_pan_type_is_cdecl(: "id")) {
         ~ if (call equal_cdecl(: len : 4)) {
             ~ var client_id = call lang_pan_payload_u32_cdecl(: 0)
         }
         ~ return 0
     }
 
-    ~ if (call lang_pan_type_is_level_cdecl()) {
+    ~ if (call lang_pan_type_is_cdecl(: "level")) {
         ~ if (call not_equal_cdecl(: len : 8)) {
             ~ return 0
         }
         ~ return 0
     }
 
-    ~ if (call lang_pan_type_is_r_set_lvl_cdecl()) {
+    ~ if (call lang_pan_type_is_cdecl(: "r.setLvl")) {
         ~ if (call equal_cdecl(: len : 5)) {
             ~ var msg = call lang_pan_payload_u32_cdecl(: 0)
             ~ var ok = call lang_pan_payload_bool_cdecl(: 4)
@@ -415,6 +407,8 @@
         ~ return 1
     }
 
+    ~ call lang_choose_role_cdecl(: "person")
+
     ~ while (call lang_client_alive_cdecl()) {
         ~ rc = call lang_client_read_next_cdecl()
 
@@ -431,11 +425,11 @@
         }
 
         ~ if (call equal_cdecl(: rc : 0)) {
-            ~ if (call lang_pan_is_person_cdecl()) {
+            ~ if (call lang_pan_prefix_is_cdecl(: "person")) {
                 ~ call handle_person()
             }
 
-            ~ if (call lang_pan_is_srv_cdecl()) {
+            ~ if (call lang_pan_prefix_is_cdecl(: "srv")) {
                 ~ call handle_srv()
             }
         }
