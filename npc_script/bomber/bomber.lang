@@ -196,10 +196,6 @@
         ~ return 0
     }
 
-    ~ if (call equal_cdecl(: self_y : 1)) {
-        ~ return 0
-    }
-
     ~ var idx = call get_closest_one()
     ~ if (call equal_cdecl(: idx : 0 - 1)) {
         ~ return 0
@@ -214,7 +210,7 @@
     ~ return 1
 }
 
-~ func chase_if_possible()
+~ func run_if_possible()
 {
     ~ if (have_pos) {
         ~ if (call bigger_cdecl(: visible_count : 0)) {
@@ -230,29 +226,35 @@
                 ~ i = i + 1
             }
 
+            ~ if (call bigger_cdecl(: best_dist : 6)) {
+                ~ return 0
+            }
+
             ~ var sx = call sign(: visible_x[best] - self_x)
+            ~ sx = 0 - sx
             ~ var sy = call sign(: visible_y[best] - self_y)
+            ~ sy = 0 - sy
 
             ~ var abs_x = call iabs(: visible_x[best] - self_x)
             ~ var abs_y = call iabs(: visible_y[best] - self_y)
 
             ~ if (call bigger_or_eq_cdecl(: abs_x : abs_y)) {
-                ~ if (call try_move(: sx : 0)) {
+                ~ if (call try_move(: 0 : sy)) {
                     ~ call clear_tick_state()
                     ~ return 1
                 }
-                ~ if (call try_move(: 0 : sy)) {
+                ~ if (call try_move(: sx : 0)) {
                     ~ call clear_tick_state()
                     ~ return 1
                 }
             }
 
             ~ if (call smaller_cdecl(: abs_x : abs_y)) {
-                ~ if (call try_move(: 0 : sy)) {
+                ~ if (call try_move(: sx : 0)) {
                     ~ call clear_tick_state()
                     ~ return 1
                 }
-                ~ if (call try_move(: sx : 0)) {
+                ~ if (call try_move(: 0 : sy)) {
                     ~ call clear_tick_state()
                     ~ return 1
                 }
@@ -321,7 +323,7 @@
 
     ~ bomb_deployed = 0
 
-    ~ if (call chase_if_possible()) {
+    ~ if (call run_if_possible()) {
         ~ return 0
     }
 
