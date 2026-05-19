@@ -36,8 +36,8 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT ${LIBSOCKMSG_SPLOBJ}
-    DEPENDS ${LIBSOCKMSG_ELF} spl_elf2splo
-    COMMAND $<TARGET_FILE:spl_elf2splo> ${LIBSOCKMSG_ELF} ${LIBSOCKMSG_SPLOBJ}
+    DEPENDS ${LIBSOCKMSG_ELF} elf2splo
+    COMMAND $<TARGET_FILE:elf2splo> ${LIBSOCKMSG_ELF} ${LIBSOCKMSG_SPLOBJ}
     COMMENT "Converting libsockmsg.elf to libsockmsg.splobj"
 )
 

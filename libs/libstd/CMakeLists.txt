@@ -32,8 +32,8 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT ${LIBSTD_SPLOBJ}
-    DEPENDS ${LIBSTD_ELF} spl_elf2splo
-    COMMAND $<TARGET_FILE:spl_elf2splo> ${LIBSTD_ELF} ${LIBSTD_SPLOBJ}
+    DEPENDS ${LIBSTD_ELF} elf2splo
+    COMMAND $<TARGET_FILE:elf2splo> ${LIBSTD_ELF} ${LIBSTD_SPLOBJ}
     COMMENT "Converting libstd.elf to libstd.splobj"
 )
 

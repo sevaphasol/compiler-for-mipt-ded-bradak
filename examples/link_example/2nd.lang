@@ -1,0 +1,6 @@
+~ fdecl print_str(: var str)
+
+~ func external_func() {
+    ~ call print_str(: "Belominon")
+    ~ return 0
+}

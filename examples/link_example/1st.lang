@@ -1,0 +1,6 @@
+~ fdecl external_func()
+
+~ func main() {
+    ~ call external_func()
+    ~ return 0
+}

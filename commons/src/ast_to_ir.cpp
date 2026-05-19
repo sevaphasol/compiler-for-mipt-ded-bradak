@@ -37,13 +37,13 @@ lang_status_t build_ir(lang_ctx_t* ctx)
     	EMIT(OP_MOV(OPD_REG(REG_RDI), OPD_REG(REG_RAX)));
     	EMIT(OP_MOV(OPD_REG(REG_RAX), OPD_IMM(60)));
     	EMIT(OP_SYSCALL);
+	}
 
-    	EMIT(OP_GLOBAL_LABEL("__global_init"));
-    	ctx->emitting_global_init = true;
-    	emit_globals_inits(ctx, ctx->tree);
-    	ctx->emitting_global_init = false;
-    	EMIT(OP_RET);
-    }
+	EMIT(OP_GLOBAL_LABEL("__global_init"));
+	ctx->emitting_global_init = true;
+	emit_globals_inits(ctx, ctx->tree);
+	ctx->emitting_global_init = false;
+	EMIT(OP_RET);
 
     return node_to_ir(ctx, ctx->tree);
 }
