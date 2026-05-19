@@ -196,12 +196,16 @@
         ~ return 0
     }
 
-    ~ bomb_deployed = 1
+    ~ if (call equal_cdecl(: self_y : 1)) {
+        ~ return 0
+    }
 
     ~ var idx = call get_closest_one()
     ~ if (call equal_cdecl(: idx : 0 - 1)) {
         ~ return 0
     }
+
+    ~ bomb_deployed = 1
 
     ~ if (call not_equal_cdecl(: call lang_pan_send_bomb_cdecl(: "bomber") : 0)) {
         ~ return 0
