@@ -14,6 +14,8 @@ __global_init:
         mov [rel __global_data + 24], 0
         mov [rel __global_data + 32], 0
         mov [rel __global_data + 40], 0
+        mov [rel __global_data + 145520], 0
+        mov [rel __global_data + 145528], 0
         ret
 iabs:
         push qword rbp
@@ -387,7 +389,7 @@ try_move:
         push qword 0
         push qword [rbp + 24]
         push qword [rbp + 16]
-        lea r12, [rel __strings + "person"]
+        lea r12, [rel __strings + "archer"]
         push qword r12
         call lang_move_cdecl
         add rsp, 24
@@ -409,10 +411,10 @@ try_move:
         add rsp, 16
         pop qword rbp
         ret
-attack_if_possible:
+get_closest_one:
         push qword rbp
         mov rbp, rsp
-        sub rsp, 48
+        sub rsp, 32
         mov [rbp - 8], 0
         mov rax, [rel __global_data + 0]
         test rax, rax
@@ -448,67 +450,22 @@ attack_if_possible:
         call iabs
         add rsp, 8
         mov [rbp - 32], rax
-        push qword 1
+        push qword 2
         push qword [rbp - 24]
         call smaller_or_eq_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
         je .L32
-        push qword 1
+        push qword 2
         push qword [rbp - 32]
         call smaller_or_eq_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
         je .L33
-        mov r13, [rbp - 16]
-        add r13, r13
-        add r13, r13
-        add r13, r13
-        lea rbx, [rel __global_data + 48]
-        add rbx, r13
-        push qword [rbx + 0]
-        mov r13, [rbp - 8]
-        add r13, r13
-        add r13, r13
-        add r13, r13
-        lea rbx, [rel __global_data + 137264]
-        add rbx, r13
-        pop qword [rbx + 0]
-        mov r13, [rbp - 16]
-        add r13, r13
-        add r13, r13
-        add r13, r13
-        lea rbx, [rel __global_data + 2096]
-        add rbx, r13
-        push qword [rbx + 0]
-        mov r13, [rbp - 8]
-        add r13, r13
-        add r13, r13
-        add r13, r13
-        lea rbx, [rel __global_data + 139312]
-        add rbx, r13
-        pop qword [rbx + 0]
-        mov r13, [rbp - 16]
-        add r13, r13
-        add r13, r13
-        add r13, r13
-        lea rbx, [rel __global_data + 4144]
-        add rbx, r13
-        push qword [rbx + 0]
-        mov r13, [rbp - 8]
-        add r13, r13
-        add r13, r13
-        add r13, r13
-        lea rbx, [rel __global_data + 141360]
-        add rbx, r13
-        pop qword [rbx + 0]
-        push qword [rbp - 8]
-        mov r11, 1
-        pop qword r10
-        add r10, r11
-        mov [rbp - 8], r10
+        mov rax, [rbp - 16]
+        jmp .L28
 .L33:
 .L32:
         push qword [rbp - 16]
@@ -525,50 +482,68 @@ attack_if_possible:
         test rax, rax
         jne .L31
 .L29:
+        mov rax, -1
+        jmp .L28
+        mov rax, 0
+.L28:
+        add rsp, 32
+        pop qword rbp
+        ret
+attack_if_possible:
+        push qword rbp
+        mov rbp, rsp
+        sub rsp, 8
         push qword 0
-        push qword [rbp - 8]
-        call bigger_cdecl
-        add rsp, 16
-        mov rax, rax
-        test rax, rax
-        je .L34
-        push qword [rbp - 8]
-        call lang_random_mod_cdecl
-        add rsp, 8
-        mov [rbp - 40], rax
-        mov r13, [rbp - 40]
-        add r13, r13
-        add r13, r13
-        add r13, r13
-        lea rbx, [rel __global_data + 137264]
-        add rbx, r13
-        push qword [rbx + 0]
-        pop qword [rbp - 48]
-        push qword 0
-        push qword [rbp - 48]
-        lea r12, [rel __strings + "person"]
-        push qword r12
-        call lang_attack_cdecl
-        add rsp, 16
-        push qword rax
-        call not_equal_cdecl
+        push qword [rel __global_data + 145528]
+        call equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
         je .L35
-        call lang_client_set_dead_cdecl
-        add rsp, 0
+        mov rax, 0
+        jmp .L34
 .L35:
-        call clear_tick_state
+        call get_closest_one
         add rsp, 0
+        mov [rbp - 8], rax
+        push qword -1
+        push qword [rbp - 8]
+        call equal_cdecl
+        add rsp, 16
+        mov rax, rax
+        test rax, rax
+        je .L36
+        mov rax, 0
+        jmp .L34
+.L36:
+        push qword 0
+        mov r13, [rbp - 8]
+        add r13, r13
+        add r13, r13
+        add r13, r13
+        lea rbx, [rel __global_data + 48]
+        add rbx, r13
+        push qword [rbx + 0]
+        lea r12, [rel __strings + "shoot"]
+        push qword r12
+        lea r12, [rel __strings + "archer"]
+        push qword r12
+        call lang_pan_send_use_cdecl
+        add rsp, 24
+        push qword rax
+        call equal_cdecl
+        add rsp, 16
+        mov rax, rax
+        test rax, rax
+        je .L37
         mov rax, 1
-        jmp .L28
+        jmp .L34
+.L37:
+        mov rax, 0
+        jmp .L34
+        mov rax, 0
 .L34:
-        mov rax, 0
-        jmp .L28
-        mov rax, 0
-.L28:
-        add rsp, 48
+        add rsp, 8
         pop qword rbp
         ret
 chase_if_possible:
@@ -577,14 +552,14 @@ chase_if_possible:
         sub rsp, 64
         mov rax, [rel __global_data + 0]
         test rax, rax
-        je .L37
+        je .L39
         push qword 0
         push qword [rel __global_data + 32]
         call bigger_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L38
+        je .L40
         mov [rbp - 8], 0
         mov r13, 0
         add r13, r13
@@ -606,8 +581,8 @@ chase_if_possible:
         add rsp, 32
         mov [rbp - 16], rax
         mov [rbp - 24], 1
-        jmp .L39
-.L40:
+        jmp .L41
+.L42:
         mov r13, [rbp - 24]
         add r13, r13
         add r13, r13
@@ -633,25 +608,25 @@ chase_if_possible:
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L41
+        je .L43
         push qword [rbp - 24]
         pop qword [rbp - 8]
         push qword [rbp - 32]
         pop qword [rbp - 16]
-.L41:
+.L43:
         push qword [rbp - 24]
         mov r11, 1
         pop qword r10
         add r10, r11
         mov [rbp - 24], r10
-.L39:
+.L41:
         push qword [rel __global_data + 32]
         push qword [rbp - 24]
         call smaller_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        jne .L40
+        jne .L42
         mov r13, [rbp - 8]
         add r13, r13
         add r13, r13
@@ -680,18 +655,6 @@ chase_if_possible:
         call sign
         add rsp, 8
         mov [rbp - 48], rax
-        push qword [rbp - 48]
-        push qword [rbp - 40]
-        call try_move
-        add rsp, 16
-        mov rax, rax
-        test rax, rax
-        je .L42
-        call clear_tick_state
-        add rsp, 0
-        mov rax, 1
-        jmp .L36
-.L42:
         mov r13, [rbp - 8]
         add r13, r13
         add r13, r13
@@ -726,21 +689,9 @@ chase_if_possible:
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L43
+        je .L44
         push qword 0
         push qword [rbp - 40]
-        call try_move
-        add rsp, 16
-        mov rax, rax
-        test rax, rax
-        je .L44
-        call clear_tick_state
-        add rsp, 0
-        mov rax, 1
-        jmp .L36
-.L44:
-        push qword [rbp - 48]
-        push qword 0
         call try_move
         add rsp, 16
         mov rax, rax
@@ -749,30 +700,30 @@ chase_if_possible:
         call clear_tick_state
         add rsp, 0
         mov rax, 1
-        jmp .L36
+        jmp .L38
 .L45:
-.L43:
-        push qword [rbp - 64]
-        push qword [rbp - 56]
-        call smaller_cdecl
-        add rsp, 16
-        mov rax, rax
-        test rax, rax
-        je .L46
         push qword [rbp - 48]
         push qword 0
         call try_move
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L47
+        je .L46
         call clear_tick_state
         add rsp, 0
         mov rax, 1
-        jmp .L36
-.L47:
+        jmp .L38
+.L46:
+.L44:
+        push qword [rbp - 64]
+        push qword [rbp - 56]
+        call smaller_cdecl
+        add rsp, 16
+        mov rax, rax
+        test rax, rax
+        je .L47
+        push qword [rbp - 48]
         push qword 0
-        push qword [rbp - 40]
         call try_move
         add rsp, 16
         mov rax, rax
@@ -781,15 +732,27 @@ chase_if_possible:
         call clear_tick_state
         add rsp, 0
         mov rax, 1
-        jmp .L36
+        jmp .L38
 .L48:
-.L46:
+        push qword 0
+        push qword [rbp - 40]
+        call try_move
+        add rsp, 16
+        mov rax, rax
+        test rax, rax
+        je .L49
+        call clear_tick_state
+        add rsp, 0
+        mov rax, 1
+        jmp .L38
+.L49:
+.L47:
+.L40:
+.L39:
+        mov rax, 0
+        jmp .L38
+        mov rax, 0
 .L38:
-.L37:
-        mov rax, 0
-        jmp .L36
-        mov rax, 0
-.L36:
         add rsp, 64
         pop qword rbp
         ret
@@ -863,8 +826,8 @@ random_move:
         pop qword [rbx + 0]
         mov [rbp - 8], 0
         mov [rbp - 16], 0
-        jmp .L50
-.L51:
+        jmp .L51
+.L52:
         mov r13, [rbp - 16]
         add r13, r13
         add r13, r13
@@ -894,20 +857,20 @@ random_move:
         mov [rbp - 56], 1
         mov rax, [rel __global_data + 0]
         test rax, rax
-        je .L52
+        je .L53
         push qword [rbp - 48]
         push qword [rbp - 40]
         call wall_known
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L53
+        je .L54
         mov [rbp - 56], 0
+.L54:
 .L53:
-.L52:
         mov rax, [rbp - 56]
         test rax, rax
-        je .L54
+        je .L55
         push qword [rbp - 24]
         mov r13, [rbp - 8]
         add r13, r13
@@ -929,32 +892,32 @@ random_move:
         pop qword r10
         add r10, r11
         mov [rbp - 8], r10
-.L54:
+.L55:
         push qword [rbp - 16]
         mov r11, 1
         pop qword r10
         add r10, r11
         mov [rbp - 16], r10
-.L50:
+.L51:
         push qword 4
         push qword [rbp - 16]
         call smaller_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        jne .L51
+        jne .L52
         push qword 0
         push qword [rbp - 8]
         call equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L55
+        je .L56
         call clear_tick_state
         add rsp, 0
         mov rax, 0
-        jmp .L49
-.L55:
+        jmp .L50
+.L56:
         push qword [rbp - 8]
         call lang_random_mod_cdecl
         add rsp, 8
@@ -974,7 +937,7 @@ random_move:
         lea rbx, [rel __global_data + 143408]
         add rbx, r13
         push qword [rbx + 0]
-        lea r12, [rel __strings + "person"]
+        lea r12, [rel __strings + "archer"]
         push qword r12
         call lang_move_cdecl
         add rsp, 24
@@ -983,16 +946,18 @@ random_move:
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L56
+        je .L57
         call lang_client_set_dead_cdecl
         add rsp, 0
-.L56:
+        mov rax, -1
+        jmp .L50
+.L57:
         call clear_tick_state
         add rsp, 0
         mov rax, 0
-        jmp .L49
+        jmp .L50
         mov rax, 0
-.L49:
+.L50:
         add rsp, 64
         pop qword rbp
         ret
@@ -1004,24 +969,24 @@ do_random_action:
         add rsp, 0
         mov rax, rax
         test rax, rax
-        je .L58
+        je .L59
         mov rax, 0
-        jmp .L57
-.L58:
+        jmp .L58
+.L59:
         call chase_if_possible
         add rsp, 0
         mov rax, rax
         test rax, rax
-        je .L59
+        je .L60
         mov rax, 0
-        jmp .L57
-.L59:
+        jmp .L58
+.L60:
         call random_move
         add rsp, 0
         mov rax, 0
-        jmp .L57
+        jmp .L58
         mov rax, 0
-.L57:
+.L58:
         add rsp, 0
         pop qword rbp
         ret
@@ -1038,34 +1003,35 @@ handle_person:
         add rsp, 8
         mov rax, rax
         test rax, rax
-        je .L61
+        je .L62
         push qword 0
         push qword [rbp - 8]
         call equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L62
+        je .L63
         call do_random_action
         add rsp, 0
-.L62:
+.L63:
+        mov [rel __global_data + 32], 0
         mov rax, 0
-        jmp .L60
-.L61:
+        jmp .L61
+.L62:
         lea r12, [rel __strings + "hp"]
         push qword r12
         call lang_pan_type_is_cdecl
         add rsp, 8
         mov rax, rax
         test rax, rax
-        je .L63
+        je .L64
         push qword 4
         push qword [rbp - 8]
         call equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L64
+        je .L65
         push qword 0
         call lang_pan_payload_i32_cdecl
         add rsp, 8
@@ -1076,28 +1042,28 @@ handle_person:
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L65
+        je .L66
         call lang_client_set_dead_cdecl
         add rsp, 0
+.L66:
 .L65:
-.L64:
         mov rax, 0
-        jmp .L60
-.L63:
+        jmp .L61
+.L64:
         lea r12, [rel __strings + "at"]
         push qword r12
         call lang_pan_type_is_cdecl
         add rsp, 8
         mov rax, rax
         test rax, rax
-        je .L66
+        je .L67
         push qword 8
         push qword [rbp - 8]
         call equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L67
+        je .L68
         push qword 0
         call lang_pan_payload_i32_cdecl
         add rsp, 8
@@ -1107,22 +1073,23 @@ handle_person:
         add rsp, 8
         mov [rel __global_data + 24], rax
         mov [rel __global_data + 0], 1
-.L67:
+.L68:
         mov rax, 0
-        jmp .L60
-.L66:
-        lea r12, [rel __strings + "sees"]
+        jmp .L61
+.L67:
+        lea r12, [rel __strings + "root"]
         push qword r12
         call lang_pan_type_is_cdecl
         add rsp, 8
-        mov rax, rax
-        test rax, rax
-        je .L68
-        push qword 12
-        push qword [rbp - 8]
-        call equal_cdecl
-        add rsp, 16
-        mov rax, rax
+        push qword rax
+        lea r12, [rel __strings + "enemy"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
+        mov r11, rax
+        pop qword r10
+        add r10, r11
+        mov rax, r10
         test rax, rax
         je .L69
         push qword 4
@@ -1139,10 +1106,9 @@ handle_person:
         push qword rax
         call add_visible
         add rsp, 24
-.L69:
         mov rax, 0
-        jmp .L60
-.L68:
+        jmp .L61
+.L69:
         lea r12, [rel __strings + "wall"]
         push qword r12
         call lang_pan_type_is_cdecl
@@ -1169,12 +1135,27 @@ handle_person:
         add rsp, 16
 .L71:
         mov rax, 0
-        jmp .L60
+        jmp .L61
 .L70:
+        lea r12, [rel __strings + "ability"]
+        push qword r12
+        call lang_pan_type_is_cdecl
+        add rsp, 8
+        mov rax, rax
+        test rax, rax
+        je .L72
+        push qword [rel __global_data + 145528]
+        mov r11, 1
+        pop qword r10
+        add r10, r11
+        mov [rel __global_data + 145528], r10
         mov rax, 0
-        jmp .L60
+        jmp .L61
+.L72:
         mov rax, 0
-.L60:
+        jmp .L61
+        mov rax, 0
+.L61:
         add rsp, 8
         pop qword rbp
         ret
@@ -1191,86 +1172,86 @@ handle_srv:
         add rsp, 8
         mov rax, rax
         test rax, rax
-        je .L73
+        je .L74
         push qword 8
         push qword [rbp - 8]
         call not_equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L74
+        je .L75
         mov rax, 0
-        jmp .L72
+        jmp .L73
+.L75:
+        mov rax, 0
+        jmp .L73
 .L74:
-        mov rax, 0
-        jmp .L72
-.L73:
         lea r12, [rel __strings + "name"]
         push qword r12
         call lang_pan_type_is_cdecl
         add rsp, 8
         mov rax, rax
         test rax, rax
-        je .L75
+        je .L76
         mov rax, 0
-        jmp .L72
-.L75:
+        jmp .L73
+.L76:
         lea r12, [rel __strings + "id"]
         push qword r12
         call lang_pan_type_is_cdecl
         add rsp, 8
         mov rax, rax
         test rax, rax
-        je .L76
+        je .L77
         push qword 4
         push qword [rbp - 8]
         call equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L77
+        je .L78
         push qword 0
         call lang_pan_payload_u32_cdecl
         add rsp, 8
         mov [rbp - 16], rax
-.L77:
+.L78:
         mov rax, 0
-        jmp .L72
-.L76:
+        jmp .L73
+.L77:
         lea r12, [rel __strings + "level"]
         push qword r12
         call lang_pan_type_is_cdecl
         add rsp, 8
         mov rax, rax
         test rax, rax
-        je .L78
+        je .L79
         push qword 8
         push qword [rbp - 8]
         call not_equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L79
+        je .L80
         mov rax, 0
-        jmp .L72
+        jmp .L73
+.L80:
+        mov rax, 0
+        jmp .L73
 .L79:
-        mov rax, 0
-        jmp .L72
-.L78:
         lea r12, [rel __strings + "r.setLvl"]
         push qword r12
         call lang_pan_type_is_cdecl
         add rsp, 8
         mov rax, rax
         test rax, rax
-        je .L80
+        je .L81
         push qword 5
         push qword [rbp - 8]
         call equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L81
+        je .L82
         push qword 0
         call lang_pan_payload_u32_cdecl
         add rsp, 8
@@ -1279,14 +1260,14 @@ handle_srv:
         call lang_pan_payload_bool_cdecl
         add rsp, 8
         mov [rbp - 32], rax
+.L82:
+        mov rax, 0
+        jmp .L73
 .L81:
         mov rax, 0
-        jmp .L72
-.L80:
+        jmp .L73
         mov rax, 0
-        jmp .L72
-        mov rax, 0
-.L72:
+.L73:
         add rsp, 32
         pop qword rbp
         ret
@@ -1294,7 +1275,7 @@ main:
         push qword rbp
         mov rbp, rsp
         sub rsp, 8
-        lea r12, [rel __strings + "person"]
+        lea r12, [rel __strings + "archer"]
         push qword r12
         lea r12, [rel __strings + "3000"]
         push qword r12
@@ -1309,16 +1290,16 @@ main:
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L83
+        je .L84
         mov rax, 1
-        jmp .L82
-.L83:
-        lea r12, [rel __strings + "person"]
+        jmp .L83
+.L84:
+        lea r12, [rel __strings + "archer"]
         push qword r12
         call lang_choose_role_cdecl
         add rsp, 8
-        jmp .L84
-.L85:
+        jmp .L85
+.L86:
         call lang_client_read_next_cdecl
         add rsp, 0
         mov [rbp - 8], rax
@@ -1328,72 +1309,72 @@ main:
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L86
+        je .L87
         call lang_client_close_cdecl
         add rsp, 0
         mov rax, 0
-        jmp .L82
-.L86:
+        jmp .L83
+.L87:
         push qword 0
-        push qword [rbp - 8]
-        call not_equal_cdecl
-        add rsp, 16
-        mov rax, rax
-        test rax, rax
-        je .L87
-        push qword 1
         push qword [rbp - 8]
         call not_equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
         je .L88
+        push qword 1
+        push qword [rbp - 8]
+        call not_equal_cdecl
+        add rsp, 16
+        mov rax, rax
+        test rax, rax
+        je .L89
         call lang_client_close_cdecl
         add rsp, 0
         mov rax, 1
-        jmp .L82
+        jmp .L83
+.L89:
 .L88:
-.L87:
         push qword 0
         push qword [rbp - 8]
         call equal_cdecl
         add rsp, 16
         mov rax, rax
         test rax, rax
-        je .L89
-        lea r12, [rel __strings + "person"]
-        push qword r12
-        call lang_pan_prefix_is_cdecl
-        add rsp, 8
-        mov rax, rax
-        test rax, rax
         je .L90
-        call handle_person
-        add rsp, 0
-.L90:
-        lea r12, [rel __strings + "srv"]
+        lea r12, [rel __strings + "archer"]
         push qword r12
         call lang_pan_prefix_is_cdecl
         add rsp, 8
         mov rax, rax
         test rax, rax
         je .L91
-        call handle_srv
+        call handle_person
         add rsp, 0
 .L91:
-.L89:
-.L84:
+        lea r12, [rel __strings + "srv"]
+        push qword r12
+        call lang_pan_prefix_is_cdecl
+        add rsp, 8
+        mov rax, rax
+        test rax, rax
+        je .L92
+        call handle_srv
+        add rsp, 0
+.L92:
+.L90:
+.L85:
         call lang_client_alive_cdecl
         add rsp, 0
         mov rax, rax
         test rax, rax
-        jne .L85
+        jne .L86
         call lang_client_close_cdecl
         add rsp, 0
         mov rax, 0
-        jmp .L82
+        jmp .L83
         mov rax, 0
-.L82:
+.L83:
         add rsp, 8
         pop qword rbp
         ret
