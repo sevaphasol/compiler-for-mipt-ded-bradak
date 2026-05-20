@@ -210,54 +210,58 @@
     ~ return 1
 }
 
+~ arr chased_dir[4]
+~ arr chasing_shift_x[4]
+~ arr chasing_shift_y[4]
 ~ func run_if_possible()
 {
     ~ if (have_pos) {
         ~ if (call bigger_cdecl(: visible_count : 0)) {
-            ~ var best = 0
-            ~ var best_dist = call long_dist(: self_x : self_y : visible_x[0] : visible_y[0])
-            ~ var i = 1
+            ~ var i = 0
+            ~ chased_dir[0] = 0
+            ~ chased_dir[1] = 0
+            ~ chased_dir[2] = 0
+            ~ chased_dir[3] = 0
+            ~ chasing_shift_x[0] = 1
+            ~ chasing_shift_y[0] = 0
+            ~ chasing_shift_x[1] = 0
+            ~ chasing_shift_y[1] = 0 - 1
+            ~ chasing_shift_x[2] = 0
+            ~ chasing_shift_y[2] = 1
+            ~ chasing_shift_x[3] = 0 - 1
+            ~ chasing_shift_y[3] = 0
             ~ while (call smaller_cdecl(: i : visible_count)) {
-                ~ var d = call long_dist(: self_x : self_y : visible_x[i] : visible_y[i])
-                ~ if (call smaller_cdecl(: d : best_dist)) {
-                    ~ best = i
-                    ~ best_dist = d
+                ~ if (call smaller_cdecl(: self_x : visible_x[i])) {
+                    ~ if (call smaller_cdecl(: self_y : visible_y[i])) {
+                        ~ chased_dir[0] = chased_dir[0] + 1
+                    }
+                    ~ if (call bigger_or_eq_cdecl(: self_y : visible_y[i])) {
+                        ~ chased_dir[1] = chased_dir[1] + 1
+                    }
+                }
+                ~ if (call bigger_or_eq_cdecl(: self_x : visible_x[i])) {
+                    ~ if (call smaller_cdecl(: self_y : visible_y[i])) {
+                        ~ chased_dir[2] = chased_dir[2] + 1
+                    }
+                    ~ if (call bigger_or_eq_cdecl(: self_y : visible_y[i])) {
+                        ~ chased_dir[3] = chased_dir[3] + 1
+                    }
                 }
                 ~ i = i + 1
             }
 
-            ~ if (call bigger_cdecl(: best_dist : 6)) {
-                ~ return 0
+            ~ i = 1
+            ~ var best_dir = 0
+            ~ while (call smaller_cdecl(: i : 4)) {
+                ~ if (call bigger_cdecl(: chased_dir[best_dir] : chased_dir[i])) {
+                    ~ best_dir = i
+                }
+                ~ i = i + 1
             }
 
-            ~ var sx = call sign(: visible_x[best] - self_x)
-            ~ sx = 0 - sx
-            ~ var sy = call sign(: visible_y[best] - self_y)
-            ~ sy = 0 - sy
-
-            ~ var abs_x = call iabs(: visible_x[best] - self_x)
-            ~ var abs_y = call iabs(: visible_y[best] - self_y)
-
-            ~ if (call bigger_or_eq_cdecl(: abs_x : abs_y)) {
-                ~ if (call try_move(: 0 : sy)) {
-                    ~ call clear_tick_state()
-                    ~ return 1
-                }
-                ~ if (call try_move(: sx : 0)) {
-                    ~ call clear_tick_state()
-                    ~ return 1
-                }
-            }
-
-            ~ if (call smaller_cdecl(: abs_x : abs_y)) {
-                ~ if (call try_move(: sx : 0)) {
-                    ~ call clear_tick_state()
-                    ~ return 1
-                }
-                ~ if (call try_move(: 0 : sy)) {
-                    ~ call clear_tick_state()
-                    ~ return 1
-                }
+            ~ if (call try_move(: chasing_shift_x[best_dir] : chasing_shift_y[best_dir])) {
+                ~ call clear_tick_state()
+                ~ return 1
             }
         }
     }
