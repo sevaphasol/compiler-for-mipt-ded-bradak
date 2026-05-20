@@ -49,6 +49,9 @@
 ~ var items_num = 0
 ~ var abilities_num = 0
 
+~ var prev_pos_x = 0
+~ var prev_pos_y = 0
+
 ~ func iabs(: var v)
 {
     ~ if (call smaller_cdecl(: v : 0)) {
@@ -189,7 +192,8 @@
 }
 
 ~ var bomb_deployed = 0
-
+~ var bomb_x = 0
+~ var bomb_y = 0
 ~ func attack_if_possible()
 {
     ~ if (bomb_deployed) {
@@ -201,7 +205,9 @@
         ~ return 0
     }
 
-    ~ bomb_deployed = 1
+    ~ bomb_deployed = 5
+    ~ bomb_x = prev_pos_x
+    ~ bomb_y = prev_pos_y
 
     ~ if (call not_equal_cdecl(: call lang_pan_send_bomb_cdecl(: "bomber") : 0)) {
         ~ return 0
@@ -216,6 +222,36 @@
 ~ func run_if_possible()
 {
     ~ if (have_pos) {
+        ~ if (bomb_deployed) {
+            ~ if (call smaller_cdecl(: call long_dist(: bomb_x : bomb_y : self_x : self_y) : 5)) {
+                ~ var sx = 0 - call sign(: bomb_x - self_x)
+                ~ var sy = 0 - call sign(: bomb_y - self_y)
+
+                ~ var dx = 0 - call iabs(: bomb_x - self_x)
+                ~ var dy = 0 - call iabs(: bomb_y - self_y)
+
+                ~ if (call bigger_cdecl(: dx : dy)) {
+                    ~ if (call try_move(: 0 : sy)) {
+                        ~ call clear_tick_state()
+                        ~ return 1
+                    }
+                    ~ if (call try_move(: sx : 0)) {
+                        ~ call clear_tick_state()
+                        ~ return 1
+                    }
+                }
+                ~ if (call smaller_or_eq_cdecl(: dx : dy)) {
+                    ~ if (call try_move(: sx : 0)) {
+                        ~ call clear_tick_state()
+                        ~ return 1
+                    }
+                    ~ if (call try_move(: 0 : sy)) {
+                        ~ call clear_tick_state()
+                        ~ return 1
+                    }
+                }
+            }
+        }
         ~ if (call bigger_cdecl(: visible_count : 0)) {
             ~ var i = 0
             ~ chased_dir[0] = 0
@@ -325,7 +361,10 @@
         ~ return 0
     }
 
-    ~ bomb_deployed = 0
+    ~ bomb_deployed = bomb_deployed - 1
+
+    ~ prev_pos_x = self_x
+    ~ prev_pos_y = self_y
 
     ~ if (call run_if_possible()) {
         ~ return 0
