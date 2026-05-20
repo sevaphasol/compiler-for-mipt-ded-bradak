@@ -496,7 +496,6 @@ static lang_status_t add_new_id(lang_ctx_t* ctx, identifier_type_t type, node_t*
     ctx->name_table.ids[new_id].is_inited = true;
     ctx->name_table.ids[new_id].addr      = -1;
     ctx->name_table.ids[new_id].is_global = is_global;
-    ctx->name_table.ids[new_id].is_stdlib = 0;
     node->value.id_index = new_id;   /* replace name index with the new id index */
     ctx->name_table.n_ids++;
     return stack_push(ctx, new_id);

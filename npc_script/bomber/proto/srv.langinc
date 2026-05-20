@@ -1,0 +1,17 @@
+// GENERATED FILE -- DO NOT EDIT
+
+~ fdecl srv_send_binmsg()
+
+~ fdecl srv_binmsg_type_is_hasPref()
+~ fdecl srv_hasPref_pref_is(: var expected)
+~ fdecl srv_binmsg_type_is_name()
+~ fdecl srv_name_name_is(: var expected)
+~ fdecl srv_binmsg_type_is_id()
+~ fdecl srv_id_clientId()
+~ fdecl srv_binmsg_type_is_level()
+~ fdecl srv_level_level_is(: var expected)
+~ fdecl srv_setLvl_level(: var level)
+~ fdecl srv_binmsg_type_is_r_setLvl()
+~ fdecl srv_r_setLvl_msg()
+~ fdecl srv_r_setLvl_ok()
+~ fdecl srv_username_name(: var name)

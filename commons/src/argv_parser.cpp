@@ -13,6 +13,8 @@ inline void print_usage()
           "Options:\n"
           "  --help, -h                 Print this message.\n"
           "  --Source=<filename>, -S    Set assembler dump file name.\n"
+          "  --emit-obj                 Emit .splobj instead of executable ELF.\n"
+          "  --convert-splobj                 Link one input .splobj into executable ELF.\n"
           "  --out=<filename>, -o       Set output file name.\n", stderr);
 }
 
@@ -24,10 +26,13 @@ ap_status_t parse_argv(int argc, char *argv[], ap_ctx_t* ctx)
     int optind = 0;
 
     option l_opts[] = {
-        {"help",      no_argument, NULL, 'h'},
-        {"Source",    no_argument, NULL, 'S'},
-        {"input",     no_argument, NULL, 'i'},
-        {"out",       no_argument, NULL, 'o'},
+        {"help",           no_argument,       NULL, 'h'},
+        {"Source",         required_argument, NULL, 'S'},
+        {"input",          required_argument, NULL, 'i'},
+        {"out",            required_argument, NULL, 'o'},
+        {"emit-obj",       no_argument,       NULL, 'c'},
+        {"convert-splobj", no_argument,       NULL, 'l'},
+        {},
     };
 
     const char* s_opts = "hS:i:o:";
@@ -46,6 +51,12 @@ ap_status_t parse_argv(int argc, char *argv[], ap_ctx_t* ctx)
             case 'S':
                 ctx->dump_source = true;
                 ctx->source_name = optarg;
+                break;
+            case 'c':
+                ctx->emit_obj = true;
+                break;
+            case 'l':
+                ctx->link_obj = true;
                 break;
             case '?':
                 print_usage();

@@ -14,7 +14,7 @@ enum ir_opd_type_t {
     IR_OPD_REGISTER     = 1,
     IR_OPD_STFRAME_MEMORY = 2,
     IR_OPD_IMMEDIATE    = 3,
-    IR_OPD_STDLIB_LABEL = 4,
+    IR_OPD_EXTERNAL_LABEL = 4,
     IR_OPD_GLOBAL_LABEL = 5,
     IR_OPD_LOCAL_LABEL  = 6,
     IR_OPD_GLOBAL_MEMORY = 7,

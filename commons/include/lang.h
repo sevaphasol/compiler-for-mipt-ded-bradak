@@ -10,7 +10,6 @@
 #include "buffer.h"
 #include "lang_status.h"
 #include "fixup_table.h"
-#include "lib_calls_table.h"
 #include "ir_list.h"
 
 //———————————————————————————————————————————————————————————————————//
@@ -166,7 +165,6 @@ struct identifier_t
     bool              is_inited;
     int               addr;
     bool              is_global;
-    bool              is_stdlib; 
 };
 
 //———————————————————————————————————————————————————————————————————//
@@ -263,11 +261,9 @@ struct lang_ctx_t
 
     label_table_t     label_table;
     fixup_table_t     fixups;
+    fixup_table_t     external_fixups;
     fixup_table_t     global_data_fixups;
     fixup_table_t     string_fixups;
-    
-    lib_calls_table_t lib_calls_table;
-    stdlib_data_t     stdlib_data;
 };
 
 //———————————————————————————————————————————————————————————————————//

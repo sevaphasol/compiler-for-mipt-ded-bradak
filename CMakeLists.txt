@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(compiler_for_mipt_ded_bradak LANGUAGES CXX)
+project(compiler_for_mipt_ded_bradak LANGUAGES CXX ASM)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -52,7 +52,12 @@ add_custom_target(clean_logs
     COMMENT "Cleaning graph dump logs"
 )
 
+add_executable(elf2splo tools/elf2splo.cpp)
+add_executable(pan2lang tools/pan2lang.cpp)
+
 add_subdirectory(commons)
 add_subdirectory(frontend)
 add_subdirectory(backend)
 add_subdirectory(midend)
+add_subdirectory(linker)
+add_subdirectory(libs)

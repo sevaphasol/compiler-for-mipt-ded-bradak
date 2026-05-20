@@ -1,0 +1,161 @@
+// GENERATED FILE -- DO NOT EDIT
+
+~ fdecl socket_connect_raw(: var host : var port)
+~ fdecl socket_alive()
+~ fdecl socket_set_dead()
+~ fdecl socket_read_next()
+~ fdecl socket_close()
+~ fdecl socket_fd()
+
+~ fdecl binmsg_begin(: var prefix : var type)
+~ fdecl binmsg_write_i8(: var value)
+~ fdecl binmsg_write_i16(: var value)
+~ fdecl binmsg_write_i32(: var value)
+~ fdecl binmsg_write_i64(: var value)
+~ fdecl binmsg_write_id(: var value)
+~ fdecl binmsg_write_bool(: var value)
+~ fdecl binmsg_write_string(: var value)
+~ fdecl binmsg_write_char64(: var value)
+~ fdecl binmsg_send()
+
+~ fdecl binmsg_prefix()
+~ fdecl binmsg_type()
+~ fdecl binmsg_prefix_is(: var prefix)
+~ fdecl binmsg_type_is(: var type)
+~ fdecl binmsg_id()
+~ fdecl binmsg_len()
+~ fdecl binmsg_flags()
+~ fdecl binmsg_read_i8(: var offset)
+~ fdecl binmsg_read_i16(: var offset)
+~ fdecl binmsg_read_i32(: var offset)
+~ fdecl binmsg_read_i64(: var offset)
+~ fdecl binmsg_read_u32(: var offset)
+~ fdecl binmsg_read_bool(: var offset)
+~ fdecl binmsg_string_eq(: var offset : var expected)
+~ fdecl binmsg_string_size(: var offset)
+~ fdecl binmsg_char64_eq(: var offset : var expected)
+
+~ fdecl memcpy(: var dst : var src : var size)
+~ fdecl memset(: var dst : var value : var size)
+~ fdecl strlen(: var str)
+~ fdecl strcmp(: var lhs : var rhs)
+~ fdecl print_num(: var value)
+~ fdecl print_str(: var str)
+~ fdecl scan_num()
+
+~ fdecl equal(: var lhs : var rhs)
+~ fdecl not_equal(: var lhs : var rhs)
+~ fdecl smaller(: var lhs : var rhs)
+~ fdecl bigger(: var lhs : var rhs)
+~ fdecl smaller_or_eq(: var lhs : var rhs)
+~ fdecl bigger_or_eq(: var lhs : var rhs)
+~ fdecl random_mod(: var max)
+~ fdecl streq(: var lhs : var rhs)
+
+~ func srv_send_binmsg()
+{
+    ~ return call binmsg_send()
+}
+
+~ func srv_binmsg_type_is_hasPref()
+{
+    ~ if (call binmsg_type_is(: "hasPref")) {
+        ~ return call equal(: call binmsg_len() : 8)
+    }
+
+    ~ return 0
+}
+
+~ func srv_hasPref_pref_is(: var expected)
+{
+    ~ var offset = 0
+    ~ return call binmsg_char64_eq(: offset : expected)
+}
+
+~ func srv_binmsg_type_is_name()
+{
+    ~ if (call binmsg_type_is(: "name")) {
+        ~ var offset = 0
+        ~ var string_size_0 = call binmsg_string_size(: offset)
+        ~ if (call equal(: string_size_0 : 0)) {
+            ~ return 0
+        }
+        ~ offset = offset + string_size_0
+        ~ return call equal(: offset : call binmsg_len())
+    }
+
+    ~ return 0
+}
+
+~ func srv_name_name_is(: var expected)
+{
+    ~ var offset = 0
+    ~ return call binmsg_string_eq(: offset : expected)
+}
+
+~ func srv_binmsg_type_is_id()
+{
+    ~ if (call binmsg_type_is(: "id")) {
+        ~ return call equal(: call binmsg_len() : 4)
+    }
+
+    ~ return 0
+}
+
+~ func srv_id_clientId()
+{
+    ~ var offset = 0
+    ~ return call binmsg_read_u32(: offset)
+}
+
+~ func srv_binmsg_type_is_level()
+{
+    ~ if (call binmsg_type_is(: "level")) {
+        ~ return call equal(: call binmsg_len() : 8)
+    }
+
+    ~ return 0
+}
+
+~ func srv_level_level_is(: var expected)
+{
+    ~ var offset = 0
+    ~ return call binmsg_char64_eq(: offset : expected)
+}
+
+~ func srv_setLvl_level(: var level)
+{
+    ~ call binmsg_begin(: "srv" : "setLvl")
+    ~ call binmsg_write_char64(: level)
+    ~ return call srv_send_binmsg()
+}
+
+~ func srv_binmsg_type_is_r_setLvl()
+{
+    ~ if (call binmsg_type_is(: "r.setLvl")) {
+        ~ return call equal(: call binmsg_len() : 5)
+    }
+
+    ~ return 0
+}
+
+~ func srv_r_setLvl_msg()
+{
+    ~ var offset = 0
+    ~ return call binmsg_read_u32(: offset)
+}
+
+~ func srv_r_setLvl_ok()
+{
+    ~ var offset = 0
+    ~ offset = offset + 4
+    ~ return call binmsg_read_bool(: offset)
+}
+
+~ func srv_username_name(: var name)
+{
+    ~ call binmsg_begin(: "srv" : "username")
+    ~ call binmsg_write_string(: name)
+    ~ return call srv_send_binmsg()
+}
+

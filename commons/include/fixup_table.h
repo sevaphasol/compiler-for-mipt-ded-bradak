@@ -73,6 +73,10 @@ lang_status_t add_fixup(fixup_table_t* table,
                         uint32_t       offset,
                         uint32_t       rel_base);
 lang_status_t fixup_table_apply(fixup_table_t* table, label_table_t* label_table, buffer_t* code_buf);
+lang_status_t fixup_table_apply_and_collect_external(fixup_table_t* table,
+                                                     label_table_t* label_table,
+                                                     buffer_t*      code_buf,
+                                                     fixup_table_t* external_fixups);
 
 //——————————————————————————————————————————————————————————————————————————————
 

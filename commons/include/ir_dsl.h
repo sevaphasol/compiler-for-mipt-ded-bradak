@@ -18,8 +18,8 @@
     (ir_opd_t){.type = IR_OPD_GLOBAL_LABEL, .value = {.global_label_name  = _name}}
 #define OPD_STRING(_str) \
     (ir_opd_t){.type = IR_OPD_STRING_LITERAL, .value = {.string_literal = _str}}
-#define OPD_STDLIB_LABEL(_name) \
-    (ir_opd_t){.type = IR_OPD_STDLIB_LABEL, .value = {.global_label_name  = _name}}
+#define OPD_EXTERNAL_LABEL(_name) \
+    (ir_opd_t){.type = IR_OPD_EXTERNAL_LABEL, .value = {.global_label_name  = _name}}
 #define OPD_LOCAL_LABEL(_num) \
     (ir_opd_t){.type = IR_OPD_LOCAL_LABEL,  .value = {.local_label_number = _num}}
 
