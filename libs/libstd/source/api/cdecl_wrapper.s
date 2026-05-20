@@ -41,6 +41,7 @@ CDECL_WRAP memcpy, memcpy_vabi, 3
 CDECL_WRAP memset, memset_vabi, 3
 CDECL_WRAP strlen, strlen_vabi, 1
 CDECL_WRAP strcmp, strcmp_vabi, 2
+CDECL_WRAP streq, streq_vabi, 1
 CDECL_WRAP print_num, print_num_vabi, 1
 CDECL_WRAP print_str, print_str_vabi, 1
 CDECL_WRAP scan_num, scan_num_vabi, 0

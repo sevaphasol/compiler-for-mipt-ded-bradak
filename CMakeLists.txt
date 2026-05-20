@@ -30,7 +30,7 @@ set(PROJECT_WARNING_FLAGS
     -Wtype-limits
     -Wwrite-strings
     -fexceptions
-    -pipe
+    -pipegi
 )
 
 set(PROJECT_APP_WARNING_FLAGS
@@ -53,6 +53,7 @@ add_custom_target(clean_logs
 )
 
 add_executable(elf2splo tools/elf2splo.cpp)
+add_executable(pan2lang tools/pan2lang.cpp)
 
 add_subdirectory(commons)
 add_subdirectory(frontend)

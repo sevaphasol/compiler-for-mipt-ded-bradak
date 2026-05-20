@@ -76,4 +76,9 @@ int64_t random_mod_vabi(int64_t max)
     return spl::libstd::backend::random_mod(max);
 }
 
+int streq_vabi(const char* lhs, const char* rhs)
+{
+    return spl::libstd::backend::strcmp(lhs, rhs) == 0;
+}
+
 }

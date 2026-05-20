@@ -20,6 +20,7 @@ int bigger_vabi(int64_t lhs, int64_t rhs);
 int smaller_or_eq_vabi(int64_t lhs, int64_t rhs);
 int bigger_or_eq_vabi(int64_t lhs, int64_t rhs);
 int64_t random_mod_vabi(int64_t max);
+int streq_vabi(const char* lhs, const char* rhs);
 
 }
 	
