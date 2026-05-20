@@ -1,0 +1,13 @@
+// GENERATED FILE -- DO NOT EDIT
+
+~ fdecl role_send_binmsg()
+
+~ fdecl role_choose_id(: var id)
+~ fdecl role_binmsg_type_is_option()
+~ fdecl role_option_id_is(: var expected)
+~ fdecl role_option_name_is(: var expected)
+~ fdecl role_option_prefix_is(: var expected)
+~ fdecl role_binmsg_type_is_chosen()
+~ fdecl role_chosen_id_is(: var expected)
+~ fdecl role_binmsg_type_is_reject()
+~ fdecl role_reject_reason_is(: var expected)

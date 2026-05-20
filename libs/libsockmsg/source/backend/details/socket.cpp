@@ -1,7 +1,7 @@
 #include "../../../include/backend/details/socket.hpp"
 #include "../../../include/backend/details/other.hpp"
 
-namespace sockmsg::backend::details {
+namespace sockmsg::backend::details::socket {
 
 namespace {
 
@@ -13,8 +13,6 @@ constexpr long kSyscallSocketSend = 44;
 constexpr long kSyscallSocketRecv = 45;
 
 }
-
-using namespace socket;
 
 void fd_zero(FdSet* set)
 {
@@ -36,7 +34,7 @@ uint16_t host_to_be16(uint16_t value)
 
 uint32_t parse_ipv4(const char* host)
 {
-    if (details::strcmp(host, "localhost") == 0) {
+    if (sockmsg::backend::details::strcmp(host, "localhost") == 0) {
         return 127u | (0u << 8) | (0u << 16) | (1u << 24);
     }
 

@@ -1,0 +1,154 @@
+// GENERATED FILE -- DO NOT EDIT
+
+~ fdecl socket_connect_raw(: var host : var port)
+~ fdecl socket_alive()
+~ fdecl socket_set_dead()
+~ fdecl socket_read_next()
+~ fdecl socket_close()
+~ fdecl socket_fd()
+
+~ fdecl binmsg_begin(: var prefix : var type)
+~ fdecl binmsg_write_i8(: var value)
+~ fdecl binmsg_write_i16(: var value)
+~ fdecl binmsg_write_i32(: var value)
+~ fdecl binmsg_write_i64(: var value)
+~ fdecl binmsg_write_id(: var value)
+~ fdecl binmsg_write_bool(: var value)
+~ fdecl binmsg_write_string(: var value)
+~ fdecl binmsg_write_char64(: var value)
+~ fdecl binmsg_send()
+
+~ fdecl binmsg_prefix()
+~ fdecl binmsg_type()
+~ fdecl binmsg_prefix_is(: var prefix)
+~ fdecl binmsg_type_is(: var type)
+~ fdecl binmsg_id()
+~ fdecl binmsg_len()
+~ fdecl binmsg_flags()
+~ fdecl binmsg_read_i8(: var offset)
+~ fdecl binmsg_read_i16(: var offset)
+~ fdecl binmsg_read_i32(: var offset)
+~ fdecl binmsg_read_i64(: var offset)
+~ fdecl binmsg_read_u32(: var offset)
+~ fdecl binmsg_read_bool(: var offset)
+~ fdecl binmsg_string_eq(: var offset : var expected)
+~ fdecl binmsg_string_size(: var offset)
+~ fdecl binmsg_char64_eq(: var offset : var expected)
+
+~ fdecl memcpy(: var dst : var src : var size)
+~ fdecl memset(: var dst : var value : var size)
+~ fdecl strlen(: var str)
+~ fdecl strcmp(: var lhs : var rhs)
+~ fdecl print_num(: var value)
+~ fdecl print_str(: var str)
+~ fdecl scan_num()
+
+~ fdecl equal(: var lhs : var rhs)
+~ fdecl not_equal(: var lhs : var rhs)
+~ fdecl smaller(: var lhs : var rhs)
+~ fdecl bigger(: var lhs : var rhs)
+~ fdecl smaller_or_eq(: var lhs : var rhs)
+~ fdecl bigger_or_eq(: var lhs : var rhs)
+~ fdecl random_mod(: var max)
+~ fdecl streq(: var lhs : var rhs)
+
+~ func role_send_binmsg()
+{
+    ~ return call binmsg_send()
+}
+
+~ func role_choose_id(: var id)
+{
+    ~ call binmsg_begin(: "role" : "choose")
+    ~ call binmsg_write_string(: id)
+    ~ return call role_send_binmsg()
+}
+
+~ func role_binmsg_type_is_option()
+{
+    ~ if (call binmsg_type_is(: "option")) {
+        ~ var offset = 0
+        ~ var string_size_0 = call binmsg_string_size(: offset)
+        ~ if (call equal(: string_size_0 : 0)) {
+            ~ return 0
+        }
+        ~ offset = offset + string_size_0
+        ~ var string_size_1 = call binmsg_string_size(: offset)
+        ~ if (call equal(: string_size_1 : 0)) {
+            ~ return 0
+        }
+        ~ offset = offset + string_size_1
+        ~ var string_size_2 = call binmsg_string_size(: offset)
+        ~ if (call equal(: string_size_2 : 0)) {
+            ~ return 0
+        }
+        ~ offset = offset + string_size_2
+        ~ return call equal(: offset : call binmsg_len())
+    }
+
+    ~ return 0
+}
+
+~ func role_option_id_is(: var expected)
+{
+    ~ var offset = 0
+    ~ return call binmsg_string_eq(: offset : expected)
+}
+
+~ func role_option_name_is(: var expected)
+{
+    ~ var offset = 0
+    ~ offset = offset + call binmsg_string_size(: offset)
+    ~ return call binmsg_string_eq(: offset : expected)
+}
+
+~ func role_option_prefix_is(: var expected)
+{
+    ~ var offset = 0
+    ~ offset = offset + call binmsg_string_size(: offset)
+    ~ offset = offset + call binmsg_string_size(: offset)
+    ~ return call binmsg_string_eq(: offset : expected)
+}
+
+~ func role_binmsg_type_is_chosen()
+{
+    ~ if (call binmsg_type_is(: "chosen")) {
+        ~ var offset = 0
+        ~ var string_size_0 = call binmsg_string_size(: offset)
+        ~ if (call equal(: string_size_0 : 0)) {
+            ~ return 0
+        }
+        ~ offset = offset + string_size_0
+        ~ return call equal(: offset : call binmsg_len())
+    }
+
+    ~ return 0
+}
+
+~ func role_chosen_id_is(: var expected)
+{
+    ~ var offset = 0
+    ~ return call binmsg_string_eq(: offset : expected)
+}
+
+~ func role_binmsg_type_is_reject()
+{
+    ~ if (call binmsg_type_is(: "reject")) {
+        ~ var offset = 0
+        ~ var string_size_0 = call binmsg_string_size(: offset)
+        ~ if (call equal(: string_size_0 : 0)) {
+            ~ return 0
+        }
+        ~ offset = offset + string_size_0
+        ~ return call equal(: offset : call binmsg_len())
+    }
+
+    ~ return 0
+}
+
+~ func role_reject_reason_is(: var expected)
+{
+    ~ var offset = 0
+    ~ return call binmsg_string_eq(: offset : expected)
+}
+

@@ -82,12 +82,12 @@ while IFS= read -r -d '' pan_file; do
     langinc="$out_dir/$name.langinc"
     front="$out_dir/$name.front"
     middle="$out_dir/$name.middle"
-    langobj="$out_dir/$name.langobj"
+    splobj="$out_dir/$name.splobj"
 
     echo "PAN: $rel_path"
     echo "  -> $lang"
     echo "  -> $langinc"
-    echo "  -> $langobj"
+    echo "  -> $splobj"
 
     "$PAN2LANG" \
         -i "$pan_file" \
@@ -104,11 +104,10 @@ while IFS= read -r -d '' pan_file; do
 
     "$BACKEND" \
         --emit-obj \
-        --no-entry \
         -i "$middle" \
-        -o "$langobj"
+        -o "$splobj"
 
     count=$((count + 1))
 done < <(find "$PAN_DIR" -type f -name '*.pan' -print0)
 
-echo "generated $count .langobj file(s)"
+echo "generated $count .splobj file(s)"

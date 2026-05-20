@@ -1,0 +1,464 @@
+~ fdecl socket_connect_raw(: var host : var port)
+~ fdecl socket_alive()
+~ fdecl socket_set_dead()
+~ fdecl socket_read_next()
+~ fdecl socket_close()
+
+~ fdecl binmsg_prefix_is(: var prefix)
+
+~ fdecl equal(: var lhs : var rhs)
+~ fdecl not_equal(: var lhs : var rhs)
+~ fdecl smaller(: var lhs : var rhs)
+~ fdecl bigger(: var lhs : var rhs)
+~ fdecl smaller_or_eq(: var lhs : var rhs)
+~ fdecl bigger_or_eq(: var lhs : var rhs)
+~ fdecl random_mod(: var max)
+
+~ fdecl role_choose_id(: var id)
+
+~ fdecl srv_id_clientId()
+~ fdecl srv_r_setLvl_msg()
+~ fdecl srv_r_setLvl_ok()
+
+~ fdecl bomber_move_dx_dy(: var dx : var dy)
+~ fdecl bomber_bomb_send()
+~ fdecl bomber_binmsg_type_is_tick()
+~ fdecl bomber_binmsg_type_is_hp()
+~ fdecl bomber_hp_val()
+~ fdecl bomber_binmsg_type_is_at()
+~ fdecl bomber_at_x()
+~ fdecl bomber_at_y()
+~ fdecl bomber_binmsg_type_is_root()
+~ fdecl bomber_root_x()
+~ fdecl bomber_root_y()
+~ fdecl bomber_root_who()
+~ fdecl bomber_binmsg_type_is_enemy()
+~ fdecl bomber_enemy_x()
+~ fdecl bomber_enemy_y()
+~ fdecl bomber_enemy_who()
+~ fdecl bomber_binmsg_type_is_wall()
+~ fdecl bomber_wall_x()
+~ fdecl bomber_wall_y()
+~ fdecl bomber_binmsg_type_is_ability()
+~ fdecl srv_binmsg_type_is_hasPref()
+~ fdecl srv_binmsg_type_is_name()
+~ fdecl srv_binmsg_type_is_id()
+~ fdecl srv_binmsg_type_is_level()
+~ fdecl srv_binmsg_type_is_r_setLvl()
+
+~ var have_pos = 0
+~ var hp = 1
+~ var self_x = 0
+~ var self_y = 0
+~ var visible_count = 0
+~ var wall_count = 0
+
+~ arr visible_id[256]
+~ arr visible_x[256]
+~ arr visible_y[256]
+~ arr walls_x[8192]
+~ arr walls_y[8192]
+~ arr attackable_id[256]
+~ arr attackable_x[256]
+~ arr attackable_y[256]
+~ arr legal_dx[4]
+~ arr legal_dy[4]
+
+~ arr items[256]
+~ var items_num = 0
+~ var abilities_num = 0
+
+~ func iabs(: var v)
+{
+    ~ if (call smaller(: v : 0)) {
+        ~ return 0 - v
+    }
+
+    ~ return v
+}
+
+~ func sign(: var v)
+{
+    ~ if (call bigger(: v : 0)) {
+        ~ return 1
+    }
+    ~ if (call smaller(: v : 0)) {
+        ~ return 0 - 1
+    }
+
+    ~ return 0
+}
+
+~ func max(: var lhs : var rhs)
+{
+    ~ if (call bigger(: lhs : rhs)) {
+        ~ return lhs
+    }
+
+    ~ return rhs
+}
+
+~ func long_dist(: var ax : var ay : var bx : var by)
+{
+    ~ var dx = call iabs(: ax - bx)
+    ~ var dy = call iabs(: ay - by)
+    ~ return call max(: dx : dy)
+}
+
+~ func wall_known(: var x : var y)
+{
+    ~ var i = 0
+    ~ while (call smaller(: i : wall_count)) {
+        ~ if (call equal(: walls_x[i] : x)) {
+            ~ if (call equal(: walls_y[i] : y)) {
+                ~ return 1
+            }
+        }
+        ~ i = i + 1
+    }
+
+    ~ return 0
+}
+
+~ func add_wall(: var x : var y)
+{
+    ~ if (call wall_known(: x : y)) {
+        ~ return 0
+    }
+
+    ~ if (call smaller(: wall_count : 8192)) {
+        ~ walls_x[wall_count] = x
+        ~ walls_y[wall_count] = y
+        ~ wall_count = wall_count + 1
+    }
+
+    ~ return 0
+}
+
+~ func add_visible(: var id : var x : var y)
+{
+    ~ var i = 0
+    ~ while (call smaller(: i : visible_count)) {
+        ~ if (call equal(: visible_id[i] : id)) {
+            ~ visible_x[i] = x
+            ~ visible_y[i] = y
+            ~ return 0
+        }
+        ~ i = i + 1
+    }
+
+    ~ if (call smaller(: visible_count : 256)) {
+        ~ visible_id[visible_count] = id
+        ~ visible_x[visible_count] = x
+        ~ visible_y[visible_count] = y
+        ~ visible_count = visible_count + 1
+    }
+
+    ~ return 0
+}
+
+~ func clear_tick_state()
+{
+    ~ visible_count = 0
+    ~ return 0
+}
+
+~ func try_move(: var dx : var dy)
+{
+    ~ if (call equal(: dx : 0)) {
+        ~ if (call equal(: dy : 0)) {
+            ~ return 0
+        }
+    }
+
+    ~ var nx = self_x + dx
+    ~ var ny = self_y + dy
+
+    ~ if (have_pos) {
+        ~ if (call wall_known(: nx : ny)) {
+            ~ return 0
+        }
+    }
+
+    ~ if (call not_equal(: call bomber_move_dx_dy(: dx : dy) : 0)) {
+        ~ call socket_set_dead()
+        ~ return 1
+    }
+
+    ~ return 1
+}
+
+~ func get_closest_one()
+{
+    ~ var attackable_count = 0
+
+    ~ if (have_pos) {
+        ~ var i = 0
+        ~ while (call smaller(: i : visible_count)) {
+            ~ var dx = call iabs(: visible_x[i] - self_x)
+            ~ var dy = call iabs(: visible_y[i] - self_y)
+            ~ if (call smaller_or_eq(: dx * dx + dy * dy : 36)) {
+                ~ return i
+            }
+            ~ i = i + 1
+        }
+    }
+
+    ~ return 0 - 1
+}
+
+~ var bomb_deployed = 0
+
+~ func attack_if_possible()
+{
+    ~ if (bomb_deployed) {
+        ~ return 0
+    }
+
+    ~ var idx = call get_closest_one()
+    ~ if (call equal(: idx : 0 - 1)) {
+        ~ return 0
+    }
+
+    ~ bomb_deployed = 1
+
+    ~ if (call not_equal(: call bomber_bomb_send() : 0)) {
+        ~ return 0
+    }
+
+    ~ return 1
+}
+
+~ func run_if_possible()
+{
+    ~ if (have_pos) {
+        ~ if (call bigger(: visible_count : 0)) {
+            ~ var best = 0
+            ~ var best_dist = call long_dist(: self_x : self_y : visible_x[0] : visible_y[0])
+            ~ var i = 1
+            ~ while (call smaller(: i : visible_count)) {
+                ~ var d = call long_dist(: self_x : self_y : visible_x[i] : visible_y[i])
+                ~ if (call smaller(: d : best_dist)) {
+                    ~ best = i
+                    ~ best_dist = d
+                }
+                ~ i = i + 1
+            }
+
+            ~ if (call bigger(: best_dist : 6)) {
+                ~ return 0
+            }
+
+            ~ var sx = call sign(: visible_x[best] - self_x)
+            ~ sx = 0 - sx
+            ~ var sy = call sign(: visible_y[best] - self_y)
+            ~ sy = 0 - sy
+
+            ~ var abs_x = call iabs(: visible_x[best] - self_x)
+            ~ var abs_y = call iabs(: visible_y[best] - self_y)
+
+            ~ if (call bigger_or_eq(: abs_x : abs_y)) {
+                ~ if (call try_move(: 0 : sy)) {
+                    ~ call clear_tick_state()
+                    ~ return 1
+                }
+                ~ if (call try_move(: sx : 0)) {
+                    ~ call clear_tick_state()
+                    ~ return 1
+                }
+            }
+
+            ~ if (call smaller(: abs_x : abs_y)) {
+                ~ if (call try_move(: sx : 0)) {
+                    ~ call clear_tick_state()
+                    ~ return 1
+                }
+                ~ if (call try_move(: 0 : sy)) {
+                    ~ call clear_tick_state()
+                    ~ return 1
+                }
+            }
+        }
+    }
+
+    ~ return 0
+}
+
+~ func random_move()
+{
+    ~ legal_dx[0] = 1
+    ~ legal_dy[0] = 0
+    ~ legal_dx[1] = 0 - 1
+    ~ legal_dy[1] = 0
+    ~ legal_dx[2] = 0
+    ~ legal_dy[2] = 1
+    ~ legal_dx[3] = 0
+    ~ legal_dy[3] = 0 - 1
+
+    ~ var legal_count = 0
+    ~ var i = 0
+    ~ while (call smaller(: i : 4)) {
+        ~ var dx = legal_dx[i]
+        ~ var dy = legal_dy[i]
+        ~ var nx = self_x + dx
+        ~ var ny = self_y + dy
+        ~ var ok = 1
+
+        ~ if (have_pos) {
+            ~ if (call wall_known(: nx : ny)) {
+                ~ ok = 0
+            }
+        }
+
+        ~ if (ok) {
+            ~ legal_dx[legal_count] = dx
+            ~ legal_dy[legal_count] = dy
+            ~ legal_count = legal_count + 1
+        }
+
+        ~ i = i + 1
+    }
+
+    ~ if (call equal(: legal_count : 0)) {
+        ~ call clear_tick_state()
+        ~ return 0
+    }
+
+    ~ var idx = call random_mod(: legal_count)
+    ~ if (call not_equal(: call bomber_move_dx_dy(: legal_dx[idx] : legal_dy[idx]) : 0)) {
+        ~ call socket_set_dead()
+        ~ return 0 - 1
+    }
+    ~ call clear_tick_state()
+
+    ~ return 0
+}
+
+~ func do_random_action()
+{
+    ~ if (call attack_if_possible()) {
+        ~ return 0
+    }
+
+    ~ bomb_deployed = 0
+
+    ~ if (call run_if_possible()) {
+        ~ return 0
+    }
+
+    ~ call random_move()
+    ~ return 0
+}
+
+~ func handle_bomber()
+{
+    ~ if (call bomber_binmsg_type_is_tick()) {
+        ~ call do_random_action()
+        ~ visible_count = 0
+        ~ return 0
+    }
+
+    ~ if (call bomber_binmsg_type_is_hp()) {
+        ~ hp = call bomber_hp_val()
+        ~ if (call smaller_or_eq(: hp : 0)) {
+            ~ call socket_set_dead()
+        }
+        ~ return 0
+    }
+
+    ~ if (call bomber_binmsg_type_is_at()) {
+        ~ self_x = call bomber_at_x()
+        ~ self_y = call bomber_at_y()
+        ~ have_pos = 1
+        ~ return 0
+    }
+
+    ~ if (call bomber_binmsg_type_is_root()) {
+        ~ call add_visible(: call bomber_root_who() : call bomber_root_x() : call bomber_root_y())
+        ~ return 0
+    }
+
+    ~ if (call bomber_binmsg_type_is_enemy()) {
+        ~ call add_visible(: call bomber_enemy_who() : call bomber_enemy_x() : call bomber_enemy_y())
+        ~ return 0
+    }
+
+    ~ if (call bomber_binmsg_type_is_wall()) {
+        ~ call add_wall(: call bomber_wall_x() : call bomber_wall_y())
+        ~ return 0
+    }
+
+    ~ if (call bomber_binmsg_type_is_ability()) {
+        ~ abilities_num = abilities_num + 1
+        ~ return 0
+    }
+
+    ~ return 0
+}
+
+~ func handle_srv()
+{
+    ~ if (call srv_binmsg_type_is_hasPref()) {
+        ~ return 0
+    }
+
+    ~ if (call srv_binmsg_type_is_name()) {
+        ~ return 0
+    }
+
+    ~ if (call srv_binmsg_type_is_id()) {
+        ~ var client_id = call srv_id_clientId()
+        ~ return 0
+    }
+
+    ~ if (call srv_binmsg_type_is_level()) {
+        ~ return 0
+    }
+
+    ~ if (call srv_binmsg_type_is_r_setLvl()) {
+        ~ var msg = call srv_r_setLvl_msg()
+        ~ var ok = call srv_r_setLvl_ok()
+        ~ return 0
+    }
+
+    ~ return 0
+}
+
+~ func main()
+{
+    ~ var rc = call socket_connect_raw(: "localhost" : "3000")
+    ~ if (call not_equal(: rc : 0)) {
+        ~ return 1
+    }
+
+    ~ call role_choose_id(: "bomber")
+
+    ~ while (call socket_alive()) {
+        ~ rc = call socket_read_next()
+
+        ~ if (call equal(: rc : 2)) {
+            ~ call socket_close()
+            ~ return 0
+        }
+
+        ~ if (call not_equal(: rc : 0)) {
+            ~ if (call not_equal(: rc : 1)) {
+                ~ call socket_close()
+                ~ return 1
+            }
+        }
+
+        ~ if (call equal(: rc : 0)) {
+            ~ if (call binmsg_prefix_is(: "bomber")) {
+                ~ call handle_bomber()
+            }
+
+            ~ if (call binmsg_prefix_is(: "srv")) {
+                ~ call handle_srv()
+            }
+        }
+    }
+
+    ~ call socket_close()
+    ~ return 0
+}

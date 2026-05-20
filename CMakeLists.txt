@@ -30,7 +30,7 @@ set(PROJECT_WARNING_FLAGS
     -Wtype-limits
     -Wwrite-strings
     -fexceptions
-    -pipegi
+    -pipe
 )
 
 set(PROJECT_APP_WARNING_FLAGS

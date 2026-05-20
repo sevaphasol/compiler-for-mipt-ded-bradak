@@ -1,0 +1,252 @@
+// GENERATED FILE -- DO NOT EDIT
+
+~ fdecl socket_connect_raw(: var host : var port)
+~ fdecl socket_alive()
+~ fdecl socket_set_dead()
+~ fdecl socket_read_next()
+~ fdecl socket_close()
+~ fdecl socket_fd()
+
+~ fdecl binmsg_begin(: var prefix : var type)
+~ fdecl binmsg_write_i8(: var value)
+~ fdecl binmsg_write_i16(: var value)
+~ fdecl binmsg_write_i32(: var value)
+~ fdecl binmsg_write_i64(: var value)
+~ fdecl binmsg_write_id(: var value)
+~ fdecl binmsg_write_bool(: var value)
+~ fdecl binmsg_write_string(: var value)
+~ fdecl binmsg_write_char64(: var value)
+~ fdecl binmsg_send()
+
+~ fdecl binmsg_prefix()
+~ fdecl binmsg_type()
+~ fdecl binmsg_prefix_is(: var prefix)
+~ fdecl binmsg_type_is(: var type)
+~ fdecl binmsg_id()
+~ fdecl binmsg_len()
+~ fdecl binmsg_flags()
+~ fdecl binmsg_read_i8(: var offset)
+~ fdecl binmsg_read_i16(: var offset)
+~ fdecl binmsg_read_i32(: var offset)
+~ fdecl binmsg_read_i64(: var offset)
+~ fdecl binmsg_read_u32(: var offset)
+~ fdecl binmsg_read_bool(: var offset)
+~ fdecl binmsg_string_eq(: var offset : var expected)
+~ fdecl binmsg_string_size(: var offset)
+~ fdecl binmsg_char64_eq(: var offset : var expected)
+
+~ fdecl memcpy(: var dst : var src : var size)
+~ fdecl memset(: var dst : var value : var size)
+~ fdecl strlen(: var str)
+~ fdecl strcmp(: var lhs : var rhs)
+~ fdecl print_num(: var value)
+~ fdecl print_str(: var str)
+~ fdecl scan_num()
+
+~ fdecl equal(: var lhs : var rhs)
+~ fdecl not_equal(: var lhs : var rhs)
+~ fdecl smaller(: var lhs : var rhs)
+~ fdecl bigger(: var lhs : var rhs)
+~ fdecl smaller_or_eq(: var lhs : var rhs)
+~ fdecl bigger_or_eq(: var lhs : var rhs)
+~ fdecl random_mod(: var max)
+~ fdecl streq(: var lhs : var rhs)
+
+~ func bomber_send_binmsg()
+{
+    ~ return call binmsg_send()
+}
+
+~ func bomber_move_dx_dy(: var dx : var dy)
+{
+    ~ call binmsg_begin(: "bomber" : "move")
+    ~ call binmsg_write_i8(: dx)
+    ~ call binmsg_write_i8(: dy)
+    ~ return call bomber_send_binmsg()
+}
+
+~ func bomber_bomb_send()
+{
+    ~ call binmsg_begin(: "bomber" : "bomb")
+    ~ return call bomber_send_binmsg()
+}
+
+~ func bomber_binmsg_type_is_tick()
+{
+    ~ if (call binmsg_type_is(: "tick")) {
+        ~ return call equal(: call binmsg_len() : 0)
+    }
+
+    ~ return 0
+}
+
+~ func bomber_binmsg_type_is_hp()
+{
+    ~ if (call binmsg_type_is(: "hp")) {
+        ~ return call equal(: call binmsg_len() : 4)
+    }
+
+    ~ return 0
+}
+
+~ func bomber_hp_val()
+{
+    ~ var offset = 0
+    ~ return call binmsg_read_i32(: offset)
+}
+
+~ func bomber_binmsg_type_is_at()
+{
+    ~ if (call binmsg_type_is(: "at")) {
+        ~ return call equal(: call binmsg_len() : 8)
+    }
+
+    ~ return 0
+}
+
+~ func bomber_at_x()
+{
+    ~ var offset = 0
+    ~ return call binmsg_read_i32(: offset)
+}
+
+~ func bomber_at_y()
+{
+    ~ var offset = 0
+    ~ offset = offset + 4
+    ~ return call binmsg_read_i32(: offset)
+}
+
+~ func bomber_binmsg_type_is_root()
+{
+    ~ if (call binmsg_type_is(: "root")) {
+        ~ return call equal(: call binmsg_len() : 12)
+    }
+
+    ~ return 0
+}
+
+~ func bomber_root_x()
+{
+    ~ var offset = 0
+    ~ return call binmsg_read_i32(: offset)
+}
+
+~ func bomber_root_y()
+{
+    ~ var offset = 0
+    ~ offset = offset + 4
+    ~ return call binmsg_read_i32(: offset)
+}
+
+~ func bomber_root_who()
+{
+    ~ var offset = 0
+    ~ offset = offset + 4
+    ~ offset = offset + 4
+    ~ return call binmsg_read_u32(: offset)
+}
+
+~ func bomber_binmsg_type_is_enemy()
+{
+    ~ if (call binmsg_type_is(: "enemy")) {
+        ~ return call equal(: call binmsg_len() : 20)
+    }
+
+    ~ return 0
+}
+
+~ func bomber_enemy_x()
+{
+    ~ var offset = 0
+    ~ return call binmsg_read_i32(: offset)
+}
+
+~ func bomber_enemy_y()
+{
+    ~ var offset = 0
+    ~ offset = offset + 4
+    ~ return call binmsg_read_i32(: offset)
+}
+
+~ func bomber_enemy_who()
+{
+    ~ var offset = 0
+    ~ offset = offset + 4
+    ~ offset = offset + 4
+    ~ return call binmsg_read_u32(: offset)
+}
+
+~ func bomber_enemy_kind_is(: var expected)
+{
+    ~ var offset = 0
+    ~ offset = offset + 4
+    ~ offset = offset + 4
+    ~ offset = offset + 4
+    ~ return call binmsg_char64_eq(: offset : expected)
+}
+
+~ func bomber_binmsg_type_is_wall()
+{
+    ~ if (call binmsg_type_is(: "wall")) {
+        ~ return call equal(: call binmsg_len() : 8)
+    }
+
+    ~ return 0
+}
+
+~ func bomber_wall_x()
+{
+    ~ var offset = 0
+    ~ return call binmsg_read_i32(: offset)
+}
+
+~ func bomber_wall_y()
+{
+    ~ var offset = 0
+    ~ offset = offset + 4
+    ~ return call binmsg_read_i32(: offset)
+}
+
+~ func bomber_binmsg_type_is_item()
+{
+    ~ if (call binmsg_type_is(: "item")) {
+        ~ var offset = 0
+        ~ var string_size_0 = call binmsg_string_size(: offset)
+        ~ if (call equal(: string_size_0 : 0)) {
+            ~ return 0
+        }
+        ~ offset = offset + string_size_0
+        ~ return call equal(: offset : call binmsg_len())
+    }
+
+    ~ return 0
+}
+
+~ func bomber_item_id_is(: var expected)
+{
+    ~ var offset = 0
+    ~ return call binmsg_string_eq(: offset : expected)
+}
+
+~ func bomber_binmsg_type_is_ability()
+{
+    ~ if (call binmsg_type_is(: "ability")) {
+        ~ var offset = 0
+        ~ var string_size_0 = call binmsg_string_size(: offset)
+        ~ if (call equal(: string_size_0 : 0)) {
+            ~ return 0
+        }
+        ~ offset = offset + string_size_0
+        ~ return call equal(: offset : call binmsg_len())
+    }
+
+    ~ return 0
+}
+
+~ func bomber_ability_id_is(: var expected)
+{
+    ~ var offset = 0
+    ~ return call binmsg_string_eq(: offset : expected)
+}
+

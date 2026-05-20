@@ -26,12 +26,13 @@ ap_status_t parse_argv(int argc, char *argv[], ap_ctx_t* ctx)
     int optind = 0;
 
     option l_opts[] = {
-        {"help",      no_argument, NULL, 'h'},
-        {"Source",    no_argument, NULL, 'S'},
-        {"input",     no_argument, NULL, 'i'},
-        {"out",       no_argument, NULL, 'o'},
-        {"emit-obj",  no_argument, NULL, 'c'},
-        {"convert-splobj",  no_argument, NULL, 'l'},
+        {"help",           no_argument,       NULL, 'h'},
+        {"Source",         required_argument, NULL, 'S'},
+        {"input",          required_argument, NULL, 'i'},
+        {"out",            required_argument, NULL, 'o'},
+        {"emit-obj",       no_argument,       NULL, 'c'},
+        {"convert-splobj", no_argument,       NULL, 'l'},
+        {},
     };
 
     const char* s_opts = "hS:i:o:";

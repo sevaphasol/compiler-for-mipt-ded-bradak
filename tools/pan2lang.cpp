@@ -306,6 +306,11 @@ std::string eq_accessor_func_name(const Msg& msg, const Arg& arg)
     return accessor_func_name(msg, arg) + "_is";
 }
 
+std::string type_check_func_name(const Msg& msg)
+{
+    return msg.prefix_id + "_binmsg_type_is_" + msg.type_id;
+}
+
 std::string params(const Msg& msg)
 {
     std::string result;
@@ -457,16 +462,46 @@ std::string emit_client_message(const Msg& msg, std::string* inc)
     return out;
 }
 
-std::string emit_server_matcher(const Msg& msg, std::string* inc)
+std::string emit_server_type_checker(const Msg& msg, std::string* inc)
 {
-    const std::string name = match_func_name(msg);
+    const std::string name = type_check_func_name(msg);
     *inc += fdecl(name);
 
     std::string out;
     out += "~ func " + name + "()\n";
     out += "{\n";
-    out += "    ~ if (call binmsg_prefix_is(: \"" + msg.prefix + "\")) {\n";
-    out += "        ~ return call binmsg_type_is(: \"" + msg.type + "\")\n";
+    out += "    ~ if (call binmsg_type_is(: \"" + msg.type + "\")) {\n";
+
+    bool has_string = false;
+    size_t fixed_size = 0;
+    for (const Arg& arg : msg.args) {
+        if (arg.type == PanType::String) {
+            has_string = true;
+        } else {
+            fixed_size += fixed_type_size(arg.type);
+        }
+    }
+
+    if (!has_string) {
+        out += "        ~ return call equal(: call binmsg_len() : " + std::to_string(fixed_size) + ")\n";
+    } else {
+        out += "        ~ var offset = 0\n";
+        size_t string_index = 0;
+        for (const Arg& arg : msg.args) {
+            if (arg.type == PanType::String) {
+                std::string string_size_var = "string_size_" + std::to_string(string_index++);
+                out += "        ~ var " + string_size_var + " = call binmsg_string_size(: offset)\n";
+                out += "        ~ if (call equal(: " + string_size_var + " : 0)) {\n";
+                out += "            ~ return 0\n";
+                out += "        }\n";
+                out += "        ~ offset = offset + " + string_size_var + "\n";
+            } else {
+                out += "        ~ offset = offset + " + std::to_string(fixed_type_size(arg.type)) + "\n";
+            }
+        }
+        out += "        ~ return call equal(: offset : call binmsg_len())\n";
+    }
+
     out += "    }\n\n";
     out += "    ~ return 0\n";
     out += "}\n\n";
@@ -524,7 +559,7 @@ std::string emit_fixed_accessor(const Msg& msg, const Arg& arg, std::size_t arg_
 
 std::string emit_server_message(const Msg& msg, std::string* inc)
 {
-    std::string out = emit_server_matcher(msg, inc);
+    std::string out = emit_server_type_checker(msg, inc);
 
     for (std::size_t i = 0; i < msg.args.size(); ++i) {
         const Arg& arg = msg.args[i];
